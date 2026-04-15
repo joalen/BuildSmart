@@ -37,8 +37,8 @@ export default function DescribeProject() {
           <Textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder='e.g. "Retile my 12×9.5 ft bathroom floor and walls up to 8 ft — white matte ceramic, bright white grout, I already have a drill"'
-            className="min-h-36 resize-none border-none shadow-none focus-visible:ring-0 p-0 text-base bg-white"
+            placeholder='e.g. "Retile my 12 x 9.5 ft bathroom floor and walls up to 8 ft — white matte ceramic, bright white grout, I already have a drill"'
+            className="min-h-36 resize-none border-none shadow-none focus-visible:ring-0 p-3 text-base bg-white"
           />
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon">
@@ -73,7 +73,7 @@ export default function DescribeProject() {
       </div>
 
       {/* Disclaimer */}
-      <p className="mt-54 text-xs text-muted-foreground text-center">
+      <p className="mt-54  text-xs text-muted-foreground text-center">
         Powered by AI. Responses may be inaccurate. Confirm details before proceeding.
       </p>
     </div>

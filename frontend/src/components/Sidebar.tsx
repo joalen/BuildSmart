@@ -3,19 +3,19 @@ import { Home, PenLine, Receipt, ShoppingCart, Settings, Plus, LogOut } from 'lu
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
+  SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar'
 
 const navItems = [
-  { label: 'Home',     path: '/home',     icon: Home },
-  { label: 'Plan',     path: '/plan',     icon: PenLine },
-  { label: 'Cost',     path: '/cost',     icon: Receipt },
-  { label: 'Cart',     path: '/cart',     icon: ShoppingCart },
+  { label: 'Home', path: '/home', icon: Home },
+  { label: 'Plan', path: '/plan', icon: PenLine },
+  { label: 'Cost', path: '/cost', icon: Receipt },
+  { label: 'Cart', path: '/cart', icon: ShoppingCart },
   { label: 'Settings', path: '/settings', icon: Settings },
 ]
 
@@ -24,10 +24,9 @@ export default function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-5">
-        <span className="text-xl font-bold text-white">BuildSmart</span>
+      <SidebarHeader className="px-4 py-3">
+        <img src="/assets/logo.png" alt="BuildSmart" className="h-25 w-auto" />
       </SidebarHeader>
-
       <SidebarContent>
         <SidebarMenu>
           {navItems.map(({ label, path, icon: Icon }) => (
