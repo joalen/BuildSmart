@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from '@/components/Layout'
 import DescribeProject from '@/pages/DescribeProject'
+import PlanResult from '@/pages/PlanResult'
 //import Home from '@/pages/Home'
 //import Cost from '@/pages/Cost'
 //import Cart from '@/pages/Cart'
@@ -12,9 +13,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/plan" replace />} />
-          
           <Route path="plan" element={<DescribeProject />} />
-
+          <Route path="plan/result" element={<PlanResult />} />
         </Route>
       </Routes>
     </BrowserRouter>

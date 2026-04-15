@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Paperclip, SendHorizonal } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const EXAMPLES = [
   'Retile my 12 x 9.5 ft bathroom floor...',
@@ -12,8 +13,8 @@ const EXAMPLES = [
 export default function DescribeProject() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<string | null>(null)
-
+  const navigate = useNavigate()
+  
   const handleSubmit = async () => {
     if (!text.trim()) return
     setLoading(true)
@@ -25,7 +26,7 @@ export default function DescribeProject() {
         body: JSON.stringify({ input: text }),
       })
       const data = await res.json()
-      setResult(JSON.stringify(data, null, 2))
+      navigate('/plan/result', { state: { steps: data.steps, input: text } })
     } catch (err) {
       console.error(err)
     } finally {
