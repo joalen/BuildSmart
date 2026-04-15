@@ -48,7 +48,7 @@ export default function AppSidebar() {
       <SidebarFooter className="gap-2 p-4">
         <Button
           variant="outline"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 text-foreground border-white/20"
           onClick={() => navigate('/plan')}
         >
           <Plus className="w-4 h-4" />

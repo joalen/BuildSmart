@@ -27,7 +27,7 @@ export default function DescribeProject() {
           <div className="flex items-center justify-center gap-3">
             <h1 className="text-4xl font-bold">Describe Your Project</h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Tell us what you want to build or improve — in plain English. Include dimensions if you know them.
           </p>
         </div>
@@ -38,7 +38,7 @@ export default function DescribeProject() {
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder='e.g. "Retile my 12×9.5 ft bathroom floor and walls up to 8 ft — white matte ceramic, bright white grout, I already have a drill"'
-            className="min-h-36 resize-none border-none shadow-none focus-visible:ring-0 p-0 text-base"
+            className="min-h-36 resize-none border-none shadow-none focus-visible:ring-0 p-0 text-base bg-white"
           />
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon">
@@ -60,7 +60,7 @@ export default function DescribeProject() {
             {EXAMPLES.map(ex => (
               <Button
                 key={ex}
-                variant="secondary"
+                variant="default"
                 className="text-sm"
                 onClick={() => setText(ex)}
               >
@@ -73,7 +73,7 @@ export default function DescribeProject() {
       </div>
 
       {/* Disclaimer */}
-      <p className="mt-12 text-xs text-muted-foreground text-center">
+      <p className="mt-54 text-xs text-muted-foreground text-center">
         Powered by AI. Responses may be inaccurate. Confirm details before proceeding.
       </p>
     </div>
