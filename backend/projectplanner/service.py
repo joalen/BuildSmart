@@ -1,27 +1,42 @@
+import os 
+from openai import OpenAI
+from dotenv import load_dotenv
 from projectplanner.schema import ProjectResponse, ProjectStep
+
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_plan(user_input: str) -> ProjectResponse:
     """
-    Turns a raw project description into structured steps.
-    Phase 1: mock logic (for now...i wanna see the E2E for this to work)
+    Invokes the OpenAI client to essentially generate out a home improvement plan
     """
 
-    steps = [
-        ProjectStep(
-            id=1,
-            title="Understand project requirements",
-            description=f"Interpreting user request: {user_input}"
-        ),
-        ProjectStep(
-            id=2,
-            title="Gather materials",
-            description="Identify required tools and materials"
-        ),
-        ProjectStep(
-            id=3,
-            title="Execute installation",
-            description="Follow standard DIY procedure step-by-step"
-        )
-    ]
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are a home improvement planning assistant.
+                Given a project description, return a JSON object with this exact structure:
+                {
+                  "steps": [
+                    { "id": 1, "title": "Step title", "description": "Detailed description" },
+                    ...
+                  ]
+                }
+                Return only valid JSON, no markdown, no explanation."""
+            },
+            {
+                "role": "user",
+                "content": user_input
+            }
+        ],
+        response_format={ "type": "json_object" }
+    )
 
+    raw = response.choices[0].message.content
+    import json
+    data = json.loads(raw)
+
+    steps = [ProjectStep(**s) for s in data["steps"]]
     return ProjectResponse(steps=steps)
