@@ -11,11 +11,26 @@ const EXAMPLES = [
 
 export default function DescribeProject() {
   const [text, setText] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!text.trim()) return
-    // TODO: send to AI / navigate to next step
-    console.log('Project:', text)
+    setLoading(true)
+
+    try {
+      const res = await fetch('http://localhost:8000/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: text }),
+      })
+      const data = await res.json()
+      setResult(JSON.stringify(data, null, 2))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -46,8 +61,11 @@ export default function DescribeProject() {
             </Button>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">{text.length} chars</span>
-              <Button size="icon" onClick={handleSubmit} disabled={!text.trim()}>
-                <SendHorizonal className="w-4 h-4" />
+              <Button size="icon" onClick={handleSubmit} disabled={!text.trim() || loading}>
+                {loading
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <SendHorizonal className="w-4 h-4" />
+                }
               </Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { LayoutGrid, MessageCircle, Bell, Pencil } from 'lucide-react'
+import { LayoutGrid, MessageCircle, Bell, Pencil, CircleUser } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface NavbarProps {
@@ -53,7 +53,9 @@ export default function Navbar() {
                 <Button variant="ghost" size="icon"><LayoutGrid className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon"><MessageCircle className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon"><Bell className="w-4 h-4" /></Button>
-                <img src="https://i.pravatar.cc/32" alt="Avatar" className="w-8 h-8 rounded-full ml-2 cursor-pointer" />
+                <Button variant="ghost" size="icon" className="ml-2">
+                    <CircleUser className="w-6 h-6  " />
+                </Button>
             </div>
         </header>
     )
