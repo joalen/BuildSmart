@@ -26,7 +26,7 @@ export default function DescribeProject() {
         body: JSON.stringify({ input: text }),
       })
       const data = await res.json()
-      navigate('/plan/result', { state: { steps: data.steps, input: text } })
+      navigate('/plan/result', { state: { steps: data.steps, materials: data.materials, tools: data.tools, overview: data.overview, input: text } })
     } catch (err) {
       console.error(err)
     } finally {
