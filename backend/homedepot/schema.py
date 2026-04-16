@@ -19,3 +19,8 @@ class SearchResponse(BaseModel):
     keyword: str
     products: List[Product]
     total: Optional[int] = None
+
+class RecsRequest(BaseModel):
+    item_id: str
+    store_id: str = "121"
+    zip_code: str = "75150"

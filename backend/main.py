@@ -4,10 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from projectplanner.service import generate_plan
 from projectplanner.schema import ProjectRequest
+from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
 from homedepot.search import search_products
-from homedepot.schema import SearchRequest, SearchResponse
-import traceback
+from homedepot.schema import SearchRequest, SearchResponse, RecsRequest
 import logging
 
 logging.basicConfig(
@@ -54,6 +54,13 @@ def generate(request: ProjectRequest):
 async def search(request: SearchRequest):
     try:
         return await search_products(hd_session, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/homedepot/recommendations")
+async def recommendations(request: RecsRequest):
+    try:
+        return await get_recs(hd_session, request.item_id, request.store_id, request.zip_code)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
