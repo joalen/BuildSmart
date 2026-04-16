@@ -18,17 +18,21 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 hd_session = HomeDepotSession()
+session_error: str | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global session_error
     logger.info("Booting Home Depot session")
     try:
         await asyncio.wait_for(hd_session.init(), timeout=120)
         logger.info("Session booted successfully")
     except asyncio.TimeoutError:
-        logger.error("Session init timed out after 120s")
+        session_error = "Session init timed out after 120s"
+        logger.error(session_error)
     except Exception as e:
-        logger.exception(f"Session boot failed: {e}")
+        session_error = f"Session boot failed: {e}"
+        logger.exception(session_error)
     yield
     logger.info("Shutting down")
     await hd_session.close()
@@ -57,5 +61,6 @@ async def search(request: SearchRequest):
 async def health():
     return {
         "status": "ok",
-        "session_ready": hd_session.payload_template is not None
+        "session_ready": hd_session.payload_template is not None,
+        "session_error": session_error,
     }
