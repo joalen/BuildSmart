@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ExternalLink, Loader2, Package, Wrench, ChevronDown } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
+
 
 interface Material { id: number; name: string; quantity: string; unit: string }
 interface Tool { id: number; name: string }
@@ -23,6 +25,7 @@ export default function CostEstimate() {
   const [loading, setLoading] = useState(true)
   const [materialsOpen, setMaterialsOpen] = useState(true)
   const [toolsOpen, setToolsOpen] = useState(true)
+  const [recsOpen, setRecsOpen] = useState(true)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -59,7 +62,7 @@ export default function CostEstimate() {
           if (recsData.length > 0) break
         }
 
-        setRecs(recsData.slice(0, 6))
+        setRecs(recsData.slice(0, 12))
 
         setEnrichedMaterials(mResults)
         setEnrichedTools(tResults)
@@ -166,31 +169,44 @@ export default function CostEstimate() {
 
             {recs.length > 0 && (
               <div className="bg-card border rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center">
-                      <Package className="w-4 h-4 text-green-600" />
-                    </div>
-                    Also frequently needed
-                  </div>
-                  <span className="text-xs text-muted-foreground">based on similar projects</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {recs.map((r) => (
-                    <div key={r.item_id} className="border rounded-lg p-2 space-y-1">
-                      {r.image && <img src={r.image} alt={r.name} className="w-full h-20 object-contain rounded" />}
-                      <p className="text-xs text-muted-foreground">{r.category}</p>
-                      <p className="text-xs font-medium line-clamp-2">{r.name}</p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold">${r.price}</p>
-                        <a href={r.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-3 h-3 text-muted-foreground hover:text-primary" />
-                        </a>
+                <Collapsible open={recsOpen} onOpenChange={setRecsOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full pb-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center">
+                        <Package className="w-4 h-4 text-green-600" />
                       </div>
-                      <div className="text-xs text-green-600 font-medium">{Math.round(r.score)}% of similar projects</div>
+                      Also frequently needed
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">based on similar projects</span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${recsOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-2">
+                    <Carousel opts={{ align: 'start' }}>
+                      <CarouselContent>
+                        {recs.map((r) => (
+                          <CarouselItem key={r.item_id} className="basis-1/3">
+                            <div className="border rounded-lg p-2 space-y-1">
+                              {r.image && <img src={r.image} alt={r.name} className="w-full h-20 object-contain rounded" />}
+                              <p className="text-xs text-muted-foreground">{r.category}</p>
+                              <p className="text-xs font-medium line-clamp-2">{r.name}</p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold">${r.price}</p>
+                                <a href={r.url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                                </a>
+                              </div>
+                              <div className="text-xs text-green-600 font-medium">{Math.round(r.score)}% of similar projects</div>
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-0" />
+                      <CarouselNext className="right-0" />
+                    </Carousel>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             )}
           </>
