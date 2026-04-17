@@ -18,7 +18,7 @@ interface Recommendation { item_id: string; category: string; score: number; nam
 export default function CostEstimate() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { materials, tools, input } = location.state as PlanData
+
   const [enrichedMaterials, setEnrichedMaterials] = useState<EnrichedMaterial[]>([])
   const [enrichedTools, setEnrichedTools] = useState<EnrichedTool[]>([])
   const [recs, setRecs] = useState<Recommendation[]>([])
@@ -26,6 +26,16 @@ export default function CostEstimate() {
   const [materialsOpen, setMaterialsOpen] = useState(true)
   const [toolsOpen, setToolsOpen] = useState(true)
   const [recsOpen, setRecsOpen] = useState(true)
+
+  useEffect(() => {
+    if (!location.state) {
+      navigate('/plan', { replace: true })
+    }
+  }, [location.state, navigate])
+
+  if (!location.state) return null 
+
+  const { materials, tools, input } = location.state as PlanData
 
   useEffect(() => {
     const fetchProducts = async () => {

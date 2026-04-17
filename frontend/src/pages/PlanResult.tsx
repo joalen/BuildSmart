@@ -30,7 +30,7 @@ export default function PlanResult() {
             </span>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" onClick={() => navigate('/plan')} className="gap-2">
+            <Button variant="outline" onClick={() => { localStorage.removeItem('planReady'); navigate('/plan') }} className="gap-2">
               <RotateCcw className="w-4 h-4" />
               Start over
             </Button>

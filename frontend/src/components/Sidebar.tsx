@@ -14,13 +14,14 @@ import {
 const navItems = [
   { label: 'Home', path: '/home', icon: Home },
   { label: 'Plan', path: '/plan', icon: PenLine },
-  { label: 'Cost', path: '/cost', icon: Receipt },
-  { label: 'Cart', path: '/cart', icon: ShoppingCart },
+  { label: 'Cost', path: '/cost', icon: Receipt, requiresPlan: true },
+  { label: 'Cart', path: '/cart', icon: ShoppingCart, requiresPlan: true },
   { label: 'Settings', path: '/settings', icon: Settings },
 ]
 
 export default function AppSidebar() {
   const navigate = useNavigate()
+  const planReady = localStorage.getItem('planReady') === 'true'
 
   return (
     <Sidebar>
@@ -29,18 +30,22 @@ export default function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navItems.map(({ label, path, icon: Icon }) => (
-            <SidebarMenuItem key={path}>
-              <NavLink to={path}>
-                {({ isActive }) => (
-                  <SidebarMenuButton isActive={isActive}>
-                    <Icon className="w-4 h-4" />
-                    <span>{label}</span>
-                  </SidebarMenuButton>
-                )}
-              </NavLink>
-            </SidebarMenuItem>
-          ))}
+          {navItems.map(({ label, path, icon: Icon, requiresPlan }) => { 
+            const disabled = requiresPlan && !planReady
+
+            return (
+              <SidebarMenuItem key={path}>
+                <NavLink to={path} onClick={e => disabled && e.preventDefault()} aria-disabled={disabled}>
+                  {({ isActive }) => (
+                    <SidebarMenuButton isActive={isActive}>
+                      <Icon className="w-4 h-4" />
+                      <span>{label}</span>
+                    </SidebarMenuButton>
+                  )}
+                </NavLink>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarContent>
 
@@ -48,7 +53,10 @@ export default function AppSidebar() {
         <Button
           variant="outline"
           className="w-full justify-start gap-2 text-foreground border-white/20"
-          onClick={() => navigate('/plan')}
+            onClick={() => {
+              localStorage.removeItem('planReady')
+              navigate('/plan')
+            }}
         >
           <Plus className="w-4 h-4" />
           New Project
