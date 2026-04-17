@@ -1,11 +1,26 @@
+import gzip
 import json
 import asyncio
 import subprocess
 import platform
 import logging
+import zlib
 from playwright.async_api import async_playwright
 
 logger = logging.getLogger(__name__)
+
+
+STORE_FINDER_URL = "https://apionline.homedepot.com/federation-gateway/graphql?opname=storeSearch"
+STORE_FINDER_QUERY = """query storeSearch($lat: String, $lng: String, $storeSearchInput: String, $pagesize: String, $storeFeaturesFilter: StoreFeaturesFilter) {
+  storeSearch(lat: $lat lng: $lng storeSearchInput: $storeSearchInput pagesize: $pagesize storeFeaturesFilter: $storeFeaturesFilter) {
+    stores {
+      storeId
+      name
+      address { street city state postalCode country }
+      distance
+    }
+  }
+}"""
 
 class HomeDepotSession:
 
@@ -18,6 +33,10 @@ class HomeDepotSession:
         self.page = None
         self._xvfb = None
         self._display_ready = False
+
+        # caches for session-context
+        self.filter_catalog: dict[str, dict[str, str]] = {}
+        self.nearby_stores = {}
 
     def _get_browser_path(self) -> str:
         system = platform.system()
@@ -45,6 +64,52 @@ class HomeDepotSession:
             self._display_ready = True
             logger.info("Xvfb virtual display started")
 
+    async def resolve_zip(self, zip_code: str) -> str | None:
+        if zip_code in self.nearby_stores:
+            return self.nearby_stores[zip_code]
+        
+        payload = {
+            "operationName": "storeSearch",
+            "variables": {
+                "lat": "", "lng": "",
+                "pagesize": "5",
+                "storeSearchInput": zip_code,
+                "storeFeaturesFilter": {
+                    "applianceShowroom": False,
+                    "expandedFlooringShowroom": False,
+                    "wiFi": False, "keyCutting": False,
+                    "loadNGo": False, "propane": False,
+                    "toolRental": False, "penske": False,
+                }
+            },
+            "query": STORE_FINDER_QUERY
+        }
+        
+        result = await self.page.evaluate("""
+            async ({ url, payload }) => {
+                const resp = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        "x-experience-name": "header-footer-static",
+                        "x-debug": "false",
+                        "x-hd-dc": "origin",
+                    },
+                    body: JSON.stringify(payload)
+                });
+                return await resp.json();
+            }
+        """, {"url": STORE_FINDER_URL, "payload": payload})
+        
+        stores = result["data"]["storeSearch"]["stores"]
+        if not stores:
+            return None
+        
+        for store in stores:
+            self.nearby_stores[store["address"]["postalCode"]] = store["storeId"]
+        
+        return stores[0]["storeId"]
+
     async def init(self):
         if self.browser:
             await self.browser.close()
@@ -64,16 +129,52 @@ class HomeDepotSession:
         )
         self.page = await self.browser.new_page()
 
-        async def handle_route(route, request):
-            if "searchModel" in request.url and self.payload_template is None:
+        def _safe_post_data(request) -> str:
+            try:
+                return request.post_data or ""
+            except Exception:
+                pass 
+
+            try:
+                raw = request.post_data_buffer # post_data failed, get raw bytes instead
+                if not raw:
+                    return ""
+                
+                # try gzip
                 try:
-                    self.url = request.url
-                    self.headers = dict(request.headers)
-                    self.payload_template = json.loads(request.post_data)
-                    logger.info(f"Session captured from {self.url}")
-                except Exception as e:
-                    logger.warning(f"Failed to capture request: {e}")
-            await route.continue_()
+                    return gzip.decompress(raw).decode("utf-8")
+                except Exception:
+                    pass
+                
+                # try zlib/deflate
+                try:
+                    return zlib.decompress(raw).decode("utf-8")
+                except Exception:
+                    pass
+                
+                # try raw decode with error ignoring as last resort
+                return raw.decode("utf-8", errors="ignore")
+            
+            except Exception:
+                return ""
+    
+        async def handle_route(route, request):
+            try: 
+                post_data = _safe_post_data(request)
+
+                if "searchModel" in request.url and self.payload_template is None:
+                    try:
+                        self.url = request.url
+                        self.headers = dict(request.headers)
+                        self.payload_template = json.loads(post_data)
+                        logger.info(f"Session captured from {self.url}")
+                    except Exception as e:
+                        logger.warning(f"Failed to capture request: {e}")
+                
+            except Exception as e: 
+                logger.warning(f"handle_route error: {e}")
+            finally:
+                await route.continue_()
 
         await self.page.route("**/*", handle_route)
 
