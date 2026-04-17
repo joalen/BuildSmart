@@ -9,6 +9,19 @@ from playwright.async_api import async_playwright
 
 logger = logging.getLogger(__name__)
 
+
+STORE_FINDER_URL = "https://apionline.homedepot.com/federation-gateway/graphql?opname=storeSearch"
+STORE_FINDER_QUERY = """query storeSearch($lat: String, $lng: String, $storeSearchInput: String, $pagesize: String, $storeFeaturesFilter: StoreFeaturesFilter) {
+  storeSearch(lat: $lat lng: $lng storeSearchInput: $storeSearchInput pagesize: $pagesize storeFeaturesFilter: $storeFeaturesFilter) {
+    stores {
+      storeId
+      name
+      address { street city state postalCode country }
+      distance
+    }
+  }
+}"""
+
 class HomeDepotSession:
 
     def __init__(self):
@@ -24,8 +37,6 @@ class HomeDepotSession:
         # caches for session-context
         self.filter_catalog: dict[str, dict[str, str]] = {}
         self.nearby_stores = {}
-        self.store_finder_url = None
-        self.store_finder_template = None
 
     def _get_browser_path(self) -> str:
         system = platform.system()
@@ -60,42 +71,42 @@ class HomeDepotSession:
         payload = {
             "operationName": "storeSearch",
             "variables": {
-                "lat": "",
-                "lng": "",
+                "lat": "", "lng": "",
                 "pagesize": "5",
                 "storeSearchInput": zip_code,
                 "storeFeaturesFilter": {
                     "applianceShowroom": False,
                     "expandedFlooringShowroom": False,
-                    "wiFi": False,
-                    "keyCutting": False,
-                    "loadNGo": False,
-                    "propane": False,
-                    "toolRental": False,
-                    "penske": False,
+                    "wiFi": False, "keyCutting": False,
+                    "loadNGo": False, "propane": False,
+                    "toolRental": False, "penske": False,
                 }
             },
-            "query": self.store_finder_template["query"]
+            "query": STORE_FINDER_QUERY
         }
         
         result = await self.page.evaluate("""
             async ({ url, payload }) => {
                 const resp = await fetch(url, {
                     method: "POST",
-                    headers: { "content-type": "application/json" },
+                    headers: {
+                        "content-type": "application/json",
+                        "x-experience-name": "header-footer-static",
+                        "x-debug": "false",
+                        "x-hd-dc": "origin",
+                    },
                     body: JSON.stringify(payload)
                 });
                 return await resp.json();
             }
-        """, {"url": self.store_finder_url, "payload": payload})
+        """, {"url": STORE_FINDER_URL, "payload": payload})
         
         stores = result["data"]["storeSearch"]["stores"]
         if not stores:
             return None
         
         for store in stores:
-            postal = store["address"]["postalCode"]
-            self.nearby_stores[postal] = store["storeId"]
+            self.nearby_stores[store["address"]["postalCode"]] = store["storeId"]
         
         return stores[0]["storeId"]
 
@@ -160,13 +171,6 @@ class HomeDepotSession:
                     except Exception as e:
                         logger.warning(f"Failed to capture request: {e}")
                 
-                if "storeSearch" in post_data:
-                    try:
-                        self.store_finder_url = request.url
-                        self.store_finder_template = json.loads(post_data)
-                        logger.info("Store finder captured")
-                    except Exception as e:
-                        logger.warning(f"Failed to capture store finder: {e}")
             except Exception as e: 
                 logger.warning(f"handle_route error: {e}")
             finally:

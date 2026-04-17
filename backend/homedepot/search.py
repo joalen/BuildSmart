@@ -27,6 +27,9 @@ def _parse_products(raw_products: list) -> list[Product]:
         image_url = images[0].get("url").replace("<SIZE>", "300") if images else None
         canonical = identifiers.get("canonicalUrl", "")
 
+        fulfillment = _parse_fulfillment(p)
+        bopis = fulfillment.get("bopis", {})
+
         products.append(Product(
             itemId=p.get("itemId"),
             brand=identifiers.get("brandName"),
@@ -34,7 +37,11 @@ def _parse_products(raw_products: list) -> list[Product]:
             price=pricing.get("value"),
             image=image_url,
             url=f"https://www.homedepot.com{canonical}" if canonical else None,
+            in_stock=bopis.get("isInStock", False),
+            store_name=bopis.get("storeName"),
+            quantity=bopis.get("quantity"),
         ))
+
     return products
 
 def _parse_filter_catalog(dimensions: list) -> dict[str, dict[str, str]]:
@@ -110,14 +117,15 @@ async def search_products(
         search_model.get("dimensions", [])
     )
 
-    session.nearby_stores = {
-        store["address"]["postalCode"]: store["storeId"]
-        for store in search_model["metadata"]["stores"]["nearByStores"]
-    }
-    
-    session.nearby_stores[
-        search_model["metadata"]["stores"]["address"]["postalCode"]
-    ] = search_model["metadata"]["stores"]["storeId"]
+    stores_meta = search_model.get("metadata", {}).get("stores") or {}
+    for store in stores_meta.get("nearByStores", []):
+        postal = store["address"]["postalCode"]
+        session.nearby_stores[postal] = store["storeId"]
+
+    anchor_zip = stores_meta.get("address", {}).get("postalCode")
+    anchor_id = stores_meta.get("storeId")
+    if anchor_zip and anchor_id:
+        session.nearby_stores[anchor_zip] = anchor_id
 
     redirect = search_model["metadata"].get("searchRedirect")
     if redirect and not _redirected:
@@ -140,3 +148,30 @@ async def search_products(
         total=total,
     )
 
+async def find_swap(
+    session: HomeDepotSession,
+    oos_product: Product,
+    store_id: str,
+    base_nav: str,
+) -> Product | None:
+    nav = build_nav_param(base_nav, ["1z175a5"])
+    results = await search_products(
+        session,
+        SearchRequest(keyword=oos_product.name.split()[0], storeId=store_id),
+        nav_param=nav
+    )
+    
+    candidates = [
+        p for p in results.products
+        if p.itemId != oos_product.itemId
+        and p.in_stock  # add this
+        and p.price is not None
+        and oos_product.price is not None
+        and abs(p.price - oos_product.price) / oos_product.price <= 0.20
+    ]
+    
+    if not candidates:
+        return None
+    
+    # return closest price match
+    return min(candidates, key=lambda p: abs(p.price - oos_product.price))

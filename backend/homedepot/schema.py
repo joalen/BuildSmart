@@ -8,7 +8,10 @@ class Product(BaseModel):
     price: Optional[float] = None
     image: Optional[str] = None
     url: Optional[str] = None
-
+    in_stock: bool = False
+    store_name: str | None = None
+    quantity: int | None = None
+    
 class SearchRequest(BaseModel):
     keyword: str
     storeId: Optional[str] = "6537"
@@ -32,3 +35,10 @@ class RecsRequest(BaseModel):
     item_id: str
     store_id: str = "121"
     zip_code: str = "75150"
+
+class SwapRequest(BaseModel):
+    keyword: str
+    zipCode: str | None = None
+    storeId: str | None = None
+    base_nav: str = ""
+    filter_keys: list[str] = []
