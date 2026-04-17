@@ -17,7 +17,7 @@ class SearchRequest(BaseModel):
 
 class FilteredSearchRequest(BaseModel):
     keyword: str
-    storeId: str
+    storeId: str | None = None
     zipCode: str | None = None
     pageSize: int = 24
     filter_keys: list[str] = []

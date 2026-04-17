@@ -47,6 +47,22 @@ def _parse_filter_catalog(dimensions: list) -> dict[str, dict[str, str]]:
         for dim in dimensions
     }
 
+def _parse_fulfillment(product: dict) -> dict:
+    options = product.get("fulfillment", {}).get("fulfillmentOptions") or []
+    result = {}
+    for option in options:
+        for service in option.get("services", []):
+            for location in service.get("locations", []):
+                inventory = location.get("inventory", {})
+                result[service["type"]] = {
+                    "storeName": location.get("storeName"),
+                    "locationId": location.get("locationId"),
+                    "quantity": inventory.get("quantity"),
+                    "isInStock": inventory.get("isInStock"),
+                    "deliveryTimeline": service.get("deliveryTimeline"),
+                }
+    return result
+
 async def search_products(
     session: HomeDepotSession,
     request: SearchRequest,
@@ -93,6 +109,15 @@ async def search_products(
     session.filter_catalog = _parse_filter_catalog(
         search_model.get("dimensions", [])
     )
+
+    session.nearby_stores = {
+        store["address"]["postalCode"]: store["storeId"]
+        for store in search_model["metadata"]["stores"]["nearByStores"]
+    }
+    
+    session.nearby_stores[
+        search_model["metadata"]["stores"]["address"]["postalCode"]
+    ] = search_model["metadata"]["stores"]["storeId"]
 
     redirect = search_model["metadata"].get("searchRedirect")
     if redirect and not _redirected:

@@ -46,6 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _safe_post_data(request) -> str:
+    try:
+        return request.post_data or ""
+    except Exception:
+        return ""
+
 @app.post("/generate-plan")
 def generate(request: ProjectRequest):
     return generate_plan(request.input)
@@ -73,10 +79,19 @@ async def get_filters():
 @app.post("/homedepot/search/filtered", response_model=SearchResponse)
 async def search_filtered(request: FilteredSearchRequest):
     try:
+        store_id = request.storeId
+        if request.zipCode:
+            resolved = await hd_session.resolve_zip(request.zipCode)
+            if resolved:
+                store_id = resolved
+        
+        if not store_id:
+            raise HTTPException(status_code=400, detail="No storeId and could not resolve zip")
+
         nav = build_nav_param(request.base_nav, request.filter_keys)
         search_req = SearchRequest(
             keyword=request.keyword,
-            storeId=request.storeId,
+            storeId=store_id,
             zipCode=request.zipCode,
             pageSize=request.pageSize,
         )
