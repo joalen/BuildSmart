@@ -15,6 +15,14 @@ class SearchRequest(BaseModel):
     zipCode: Optional[str] = "75150"
     pageSize: Optional[int] = 12
 
+class FilteredSearchRequest(BaseModel):
+    keyword: str
+    storeId: str
+    zipCode: str | None = None
+    pageSize: int = 24
+    filter_keys: list[str] = []
+    base_nav: str = ""
+
 class SearchResponse(BaseModel):
     keyword: str
     products: List[Product]

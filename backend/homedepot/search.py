@@ -6,6 +6,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def build_nav_param(base_nav: str, selected_keys: list[str]) -> str:
+    """
+    base_nav: e.g. "N-5yc1vZc8d3" (category)
+    selected_keys: refinementKeys from filter_catalog
+    """
+    if not selected_keys:
+        return base_nav
+    
+    base = base_nav.lstrip("N-")
+    combined = "Z".join([base] + selected_keys)
+    return f"N-{combined}"
+
 def _parse_products(raw_products: list) -> list[Product]:
     products = []
     for p in raw_products:
@@ -25,6 +37,15 @@ def _parse_products(raw_products: list) -> list[Product]:
         ))
     return products
 
+def _parse_filter_catalog(dimensions: list) -> dict[str, dict[str, str]]:
+    return {
+        dim["label"]: {
+            r["label"]: r["refinementKey"]
+            for r in dim["refinements"]
+            if r.get("refinementKey")
+        }
+        for dim in dimensions
+    }
 
 async def search_products(
     session: HomeDepotSession,
@@ -68,6 +89,10 @@ async def search_products(
         return SearchResponse(keyword=request.keyword, products=[], total=0)
 
     search_model = data["data"]["searchModel"]
+    
+    session.filter_catalog = _parse_filter_catalog(
+        search_model.get("dimensions", [])
+    )
 
     redirect = search_model["metadata"].get("searchRedirect")
     if redirect and not _redirected:
@@ -89,3 +114,4 @@ async def search_products(
         products=_parse_products(raw_products),
         total=total,
     )
+

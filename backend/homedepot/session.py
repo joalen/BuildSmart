@@ -19,6 +19,10 @@ class HomeDepotSession:
         self._xvfb = None
         self._display_ready = False
 
+        # caches for session-context
+        self.filter_catalog: dict[str, dict[str, str]] = {}
+
+
     def _get_browser_path(self) -> str:
         system = platform.system()
         if system == "Darwin":

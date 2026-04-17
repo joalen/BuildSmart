@@ -6,8 +6,8 @@ from projectplanner.service import generate_plan
 from projectplanner.schema import ProjectRequest
 from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
-from homedepot.search import search_products
-from homedepot.schema import SearchRequest, SearchResponse, RecsRequest
+from homedepot.search import build_nav_param, search_products
+from homedepot.schema import FilteredSearchRequest, SearchRequest, SearchResponse, RecsRequest
 import logging
 
 logging.basicConfig(
@@ -61,6 +61,26 @@ async def search(request: SearchRequest):
 async def recommendations(request: RecsRequest):
     try:
         return await get_recs(hd_session, request.item_id, request.store_id, request.zip_code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/homedepot/filters")
+async def get_filters():
+    if not hd_session.filter_catalog:
+        raise HTTPException(status_code=503, detail="Session not ready")
+    return hd_session.filter_catalog
+
+@app.post("/homedepot/search/filtered", response_model=SearchResponse)
+async def search_filtered(request: FilteredSearchRequest):
+    try:
+        nav = build_nav_param(request.base_nav, request.filter_keys)
+        search_req = SearchRequest(
+            keyword=request.keyword,
+            storeId=request.storeId,
+            zipCode=request.zipCode,
+            pageSize=request.pageSize,
+        )
+        return await search_products(hd_session, search_req, nav_param=nav)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
