@@ -3,8 +3,8 @@ import Layout from '@/components/Layout'
 import DescribeProject from '@/pages/DescribeProject'
 import PlanResult from '@/pages/PlanResult'
 import CostEstimate from '@/pages/CostEstimate'
+import Cart from '@/pages/Cart'
 //import Home from '@/pages/Home'
-//import Cart from '@/pages/Cart'
 //import Settings from '@/pages/Settings'
 
 export default function App() {
@@ -16,6 +16,7 @@ export default function App() {
           <Route path="plan" element={<DescribeProject />} />
           <Route path="plan/result" element={<PlanResult />} />
           <Route path="cost" element={<CostEstimate />} />
+          <Route path="/cart" element={<Cart />} />
         </Route>
       </Routes>
     </BrowserRouter>
