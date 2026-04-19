@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle, CheckCircle2, XCircle, ShoppingCart } from 'lucide-react'
+import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle, CheckCircle2, XCircle, ShoppingCart, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface CartProduct {
@@ -90,29 +90,28 @@ export default function Cart() {
     const [swaps, setSwaps] = useState<SwapMap>({})
     const [nearbyStores, setNearbyStores] = useState<NearbyStore[]>([])
     const [loading, setLoading] = useState(false)
-    const [refreshed, setRefreshed] = useState(false)
     const [swappedItems, setSwappedItems] = useState<Set<string>>(new Set())
 
     const refreshInventory = useCallback(async (targetZip: string) => {
         setLoading(true)
-        setRefreshed(false)
         try {
-            const res = await fetch('http://localhost:8000/homedepot/search/with-swaps', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    keyword: 'faucet',
-                    zipCode: targetZip,
-                    base_nav: 'N-5yc1vZc8d3',
-                    filter_keys: [],
-                }),
-            })
-            if (!res.ok) throw new Error('Search failed')
-            const data: SwapsResponse = await res.json()
-
             const byId: Record<string, CartProduct> = {}
-            for (const p of data.products) byId[p.itemId] = p
-
+    
+            // search for each cart item individually by name
+            await Promise.all(
+                cartItems.map(async ({ product: p }) => {
+                    const res = await fetch('http://localhost:8000/homedepot/item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemId: p.itemId, storeId: '550' }),
+                    })
+                    if (!res.ok) return
+                    const data: CartProduct = await res.json()
+                    if (data.itemId) byId[data.itemId] = data
+                })
+            )
+    
+            setSwaps({ ...swaps })
             setCartItems(prev => {
                 const updated = prev.map(item => ({
                     ...item,
@@ -121,21 +120,17 @@ export default function Cart() {
                 saveCart(updated)
                 return updated
             })
-
-            setSwaps(data.swaps ?? {})
-
-            const inStockProduct = data.products.find(p => p.store_name)
+    
+            const inStockProduct = Object.values(byId).find(p => p.store_name)
             if (inStockProduct?.store_name) setStoreName(inStockProduct.store_name)
-
-            await fetchNearbyStores(targetZip, data.products)
-
-            setRefreshed(true)
+    
+            await fetchNearbyStores(targetZip, Object.values(byId))
         } catch (err) {
             console.error('Inventory refresh failed', err)
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [cartItems])
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
         try {
@@ -188,6 +183,13 @@ export default function Cart() {
             return updated
         })
         setSwappedItems(prev => new Set([...prev, originalId]))
+    }
+
+    function handleClearCart() {
+        localStorage.removeItem('buildsmart_cart')
+        setCartItems([])
+        setSwaps({})
+        setStoreName(null)
     }
 
     function handleZipUpdate() {
@@ -257,6 +259,9 @@ export default function Cart() {
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={handleExport}>
                         <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleClearCart} className="text-red-500 hover:text-red-600 hover:border-red-300">
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear cart
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => refreshInventory(zip)} disabled={loading}>
                         <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />

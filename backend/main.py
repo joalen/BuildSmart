@@ -70,6 +70,17 @@ async def get_filters():
         raise HTTPException(status_code=503, detail="Session not ready")
     return hd_session.filter_catalog
 
+@app.post("/homedepot/item")
+async def get_item(request: dict):
+    item_id = request.get("itemId")
+    store_id = request.get("storeId", "550")
+    result = await search_products(
+        hd_session,
+        SearchRequest(keyword=item_id, storeId=store_id),
+    )
+    match = next((p for p in result.products if p.itemId == item_id), None)
+    return match or {}
+
 @app.post("/homedepot/search/filtered", response_model=SearchResponse)
 async def search_filtered(request: FilteredSearchRequest):
     try:
