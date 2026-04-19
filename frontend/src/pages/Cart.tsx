@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle, CheckCircle2, XCircle, ShoppingCart, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 interface CartProduct {
     itemId: string
@@ -39,57 +40,15 @@ interface NearbyStore {
     total?: number
 }
 
-const DEMO_ITEMS: CartItem[] = [
-    {
-        qty: 2,
-        product: {
-            itemId: '304930079',
-            brand: 'MOEN',
-            name: 'Genta Single Handle Faucet — Matte Black',
-            price: 149.0,
-            image: null,
-            url: null,
-            in_stock: false,
-            store_name: null,
-            quantity: null,
-        },
-    },
-    {
-        qty: 1,
-        product: {
-            itemId: '317167679',
-            brand: 'MOEN',
-            name: 'Banbury 4 in. Centerset — Brushed Nickel',
-            price: 89.0,
-            image: null,
-            url: null,
-            in_stock: false,
-            store_name: null,
-            quantity: null,
-        },
-    },
-    {
-        qty: 1,
-        product: {
-            itemId: '300721643',
-            brand: 'Pfister',
-            name: 'Ladera 4 in. Centerset — Spot Defense Brushed Nickel',
-            price: 69.0,
-            image: null,
-            url: null,
-            in_stock: false,
-            store_name: null,
-            quantity: null,
-        },
-    },
-]
-
 function loadCart(): CartItem[] {
     try {
         const stored = localStorage.getItem('buildsmart_cart')
-        if (stored) return JSON.parse(stored)
+        if (stored) {
+            const parsed = JSON.parse(stored)
+            if (parsed.length > 0) return parsed
+        }
     } catch { }
-    return DEMO_ITEMS
+    return []
 }
 
 function saveCart(items: CartItem[]) {
@@ -123,6 +82,7 @@ function StockBadge({ product }: { product: CartProduct }) {
 }
 
 export default function Cart() {
+    const navigate = useNavigate()
     const [cartItems, setCartItems] = useState<CartItem[]>(loadCart)
     const [zip, setZip] = useState('75218')
     const [zipInput, setZipInput] = useState('75218')
@@ -130,33 +90,28 @@ export default function Cart() {
     const [swaps, setSwaps] = useState<SwapMap>({})
     const [nearbyStores, setNearbyStores] = useState<NearbyStore[]>([])
     const [loading, setLoading] = useState(false)
-    const [refreshed, setRefreshed] = useState(false)
     const [swappedItems, setSwappedItems] = useState<Set<string>>(new Set())
 
-    // Derive first product keyword for each item to search inventory
     const refreshInventory = useCallback(async (targetZip: string) => {
         setLoading(true)
-        setRefreshed(false)
         try {
-            // right now this could be per-item; but for now I implemented for it to search by category + zip
-            const res = await fetch('http://localhost:8000/homedepot/search/with-swaps', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    keyword: 'faucet',
-                    zipCode: targetZip,
-                    base_nav: 'N-5yc1vZc8d3',
-                    filter_keys: [],
-                }),
-            })
-            if (!res.ok) throw new Error('Search failed')
-            const data: SwapsResponse = await res.json()
-
-            // lookup table via itemId from the results
             const byId: Record<string, CartProduct> = {}
-            for (const p of data.products) byId[p.itemId] = p
-
-            // cart items with fresh inventory data
+    
+            // search for each cart item individually by name
+            await Promise.all(
+                cartItems.map(async ({ product: p }) => {
+                    const res = await fetch('http://localhost:8000/homedepot/item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemId: p.itemId, storeId: '550' }),
+                    })
+                    if (!res.ok) return
+                    const data: CartProduct = await res.json()
+                    if (data.itemId) byId[data.itemId] = data
+                })
+            )
+    
+            setSwaps({ ...swaps })
             setCartItems(prev => {
                 const updated = prev.map(item => ({
                     ...item,
@@ -165,43 +120,22 @@ export default function Cart() {
                 saveCart(updated)
                 return updated
             })
-
-            setSwaps(data.swaps ?? {})
-
-            // store names from first in-stock product
-            const inStockProduct = data.products.find(p => p.store_name)
+    
+            const inStockProduct = Object.values(byId).find(p => p.store_name)
             if (inStockProduct?.store_name) setStoreName(inStockProduct.store_name)
-
-            // nearby stores table from session (best effort via health endpoint)
-            await fetchNearbyStores(targetZip, data.products)
-
-            setRefreshed(true)
+    
+            await fetchNearbyStores(targetZip, Object.values(byId))
         } catch (err) {
             console.error('Inventory refresh failed', err)
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [cartItems])
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
-        // (Uses metadata.stores data embedded in a known search response) seed from the filter endpoint which triggers a session search
         try {
             const res = await fetch('http://localhost:8000/homedepot/filters')
             if (res.ok) {
-                // Nearby stores aren't in filters endpoint; therefore, we populate from product store names
-                const storeSet = new Map<string, NearbyStore>()
-                for (const p of products) {
-                    if (p.store_name) {
-                        storeSet.set(p.store_name, {
-                            storeId: '',
-                            storeName: p.store_name,
-                            distance: '',
-                            postalCode: targetZip,
-                        })
-                    }
-                }
-                // Hardcoded now but i will add in a new endpoint to get nearby stores based on smth idrk
-
                 setNearbyStores([
                     { storeId: '550', storeName: 'White Rock', distance: '4.8 mi', postalCode: '75218', available: 5, total: cartItems.length },
                     { storeId: '6537', storeName: 'Mesquite', distance: '5.1 mi', postalCode: '75150', available: 6, total: cartItems.length },
@@ -213,7 +147,9 @@ export default function Cart() {
     }
 
     useEffect(() => {
-        refreshInventory(zip)
+        if (cartItems.length > 0) {
+            refreshInventory(zip)
+        }
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     function updateQty(itemId: string, delta: number) {
@@ -249,6 +185,13 @@ export default function Cart() {
         setSwappedItems(prev => new Set([...prev, originalId]))
     }
 
+    function handleClearCart() {
+        localStorage.removeItem('buildsmart_cart')
+        setCartItems([])
+        setSwaps({})
+        setStoreName(null)
+    }
+
     function handleZipUpdate() {
         if (!zipInput.trim()) return
         setZip(zipInput)
@@ -267,7 +210,6 @@ export default function Cart() {
                 `itemId[${i}]=${p.itemId}&qty[${i}]=${qty}`
             )
             .join('&')
-
         const url = `https://www.homedepot.com/mycart/home?${params}`
         window.open(url, '_blank')
     }
@@ -292,11 +234,25 @@ export default function Cart() {
     const subtotal = cartItems.reduce((sum, { product: p, qty }) => sum + (p.price ?? 0) * qty, 0)
     const inStockCount = cartItems.filter(item => item.product.in_stock).length
 
+    // Empty state
+    if (cartItems.length === 0) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                <ShoppingCart className="w-12 h-12 opacity-30" />
+                <p className="text-sm font-medium">Your cart is empty</p>
+                <p className="text-xs">Add items from the cost estimate page to get started.</p>
+                <Button variant="outline" onClick={() => navigate('/plan')}>
+                    Go to project planner
+                </Button>
+            </div>
+        )
+    }
+
     return (
         <div className="h-full flex flex-col gap-5 overflow-auto">
 
             {/* Page header */}
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center justify-between flex-shrink-0 pr-2">
                 <div className="flex items-center gap-3">
                     <h1 className="text-2xl font-bold">Cart</h1>
                 </div>
@@ -304,11 +260,8 @@ export default function Cart() {
                     <Button variant="outline" size="sm" onClick={handleExport}>
                         <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
                     </Button>
-                    <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-sm h-9 px-4"
-                        onClick={handleOpenInHD}
-                    >
-                        Open in Home Depot ↗
+                    <Button variant="outline" size="sm" onClick={handleClearCart} className="text-red-500 hover:text-red-600 hover:border-red-300">
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear cart
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => refreshInventory(zip)} disabled={loading}>
                         <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
@@ -420,6 +373,12 @@ export default function Cart() {
                                                     className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
                                                 >
                                                     <Plus className="w-3 h-3" />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeItem(p.itemId)}
+                                                    className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors ml-1"
+                                                >
+                                                    <XCircle className="w-3 h-3" />
                                                 </button>
                                             </div>
                                         </td>
