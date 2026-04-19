@@ -2,10 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { LayoutGrid, MessageCircle, Bell, Pencil, CircleUser } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-interface NavbarProps {
-    title?: string
-}
-
 export default function Navbar() {
     const [title, setTitle] = useState('New Project')
     const [isEditing, setIsEditing] = useState(false)
