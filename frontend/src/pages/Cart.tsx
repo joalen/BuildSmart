@@ -386,7 +386,7 @@ export default function Cart() {
                                         {/* Cost */}
                                         <td className="px-4 py-3 text-right">
                                             <span className={`text-xs font-medium ${!p.in_stock ? 'text-muted-foreground' : ''}`}>
-                                                ${p.price ? (p.price * qty).toFixed(2) : '—'}
+                                                ${p.price ? (p.price * qty).toFixed(2) : 'Price unavailable'}
                                             </span>
                                         </td>
                                     </tr>
