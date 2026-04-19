@@ -101,7 +101,17 @@ class HomeDepotSession:
             }
         """, {"url": STORE_FINDER_URL, "payload": payload})
         
-        stores = result["data"]["storeSearch"]["stores"]
+        data = result.get("data") or {}
+        store_search = data.get("storeSearch")
+
+        if store_search is None:
+            errors = result.get("errors")
+            raise ValueError(
+                f"Home Depot storeSearch API returned unexpected response. "
+                f"Errors: {errors}. Full response keys: {list(result.keys())}"
+            )
+    
+        stores = store_search.get("stores", [])
         if not stores:
             return None
         

@@ -111,13 +111,19 @@ async def search_products(
         logger.error(f"Search failed with status {status}")
         return SearchResponse(keyword=request.keyword, products=[], total=0)
 
-    search_model = data["data"]["searchModel"]
+    gql_data = data.get("data") or {}
+    search_model = gql_data.get("searchModel")
+    
+    if search_model is None:
+        errors = data.get("errors")
+        logger.error(f"searchModel missing from response. Errors: {errors}. Keys: {list(gql_data.keys())}")
+        return SearchResponse(keyword=request.keyword, products=[], total=0)
     
     session.filter_catalog = _parse_filter_catalog(
         search_model.get("dimensions", [])
     )
 
-    stores_meta = search_model.get("metadata", {}).get("stores") or {}
+    stores_meta = (search_model.get("metadata") or {}).get("stores") or {}
     for store in stores_meta.get("nearByStores", []):
         postal = store["address"]["postalCode"]
         session.nearby_stores[postal] = store["storeId"]
@@ -127,7 +133,7 @@ async def search_products(
     if anchor_zip and anchor_id:
         session.nearby_stores[anchor_zip] = anchor_id
 
-    redirect = search_model["metadata"].get("searchRedirect")
+    redirect = (search_model.get("metadata") or {}).get("searchRedirect")
     if redirect and not _redirected:
         match = re.search(r'N-(\w+)', redirect)
         if match:
@@ -140,7 +146,7 @@ async def search_products(
             )
 
     raw_products = search_model.get("products") or []
-    total = search_model.get("searchReport", {}).get("totalProducts")
+    total = (search_model.get("searchReport") or {}).get("totalProducts")
 
     return SearchResponse(
         keyword=request.keyword,
