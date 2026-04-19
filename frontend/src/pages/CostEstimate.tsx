@@ -134,7 +134,7 @@ export default function CostEstimate() {
           {p.image && <img src={p.image} alt={p.name} className="w-full h-20 object-contain rounded" />}
           <p className="text-xs font-medium line-clamp-2">{p.name}</p>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold">${p.price}</p>
+            <p className="text-sm font-bold">{p.price ? `$${p.price}` : 'Price unavailable'}</p>
             <a href={p.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-3 h-3 text-muted-foreground hover:text-primary" />
             </a>
