@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, UniqueConstraint, func
 import uuid
 import os
 
@@ -29,7 +29,21 @@ class SkuEvent(Base):
     quantity = Column(Integer, default=1)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
+class SkuAggregate(Base):
+    __tablename__ = "sku_aggregates"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    date = Column(String, nullable=False) # example: "2026-02-21"
+    sku = Column(String, nullable=False)
+    project_type = Column(String)
+    frequency = Column(Integer, default=0) # how many sessions saw this SKU
+    total_quantity = Column(Integer, default=0) # sum of quantities
+    computed_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    __table_args__ = (
+        UniqueConstraint('date', 'sku', 'project_type', name='uq_sku_aggregate'),
+    )
+    
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
