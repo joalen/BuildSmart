@@ -29,6 +29,16 @@ class SkuEvent(Base):
     quantity = Column(Integer, default=1)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
+class SkuAggregate(Base):
+    __tablename__ = "sku_aggregates"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    date = Column(String, nullable=False) # example: "2026-02-21"
+    sku = Column(String, nullable=False)
+    project_type = Column(String)
+    frequency = Column(Integer, default=0) # how many sessions saw this SKU
+    total_quantity = Column(Integer, default=0) # sum of quantities
+    computed_at = Column(DateTime(timezone=True), server_default=func.now())
 
 async def init_db():
     async with engine.begin() as conn:

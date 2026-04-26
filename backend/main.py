@@ -4,7 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import json as json_lib
-from sqlalchemy import select
+from sqlalchemy import select, text
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from projectplanner.service import generate_plan
 from projectplanner.schema import ProjectRequest
@@ -23,12 +24,33 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 hd_session = HomeDepotSession()
+scheduler = AsyncIOScheduler()
 session_error: str | None = None
+
+async def run_aggregation_job():
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("""
+            INSERT INTO sku_aggregates (id, date, sku, project_type, frequency, total_quantity)
+            SELECT 
+                gen_random_uuid()::text,
+                DATE(timestamp)::text,
+                sku,
+                project_type,
+                COUNT(DISTINCT session_id),
+                SUM(quantity)
+            FROM sku_events
+            GROUP BY DATE(timestamp), sku, project_type
+            ON CONFLICT DO NOTHING
+        """))
+        await session.commit()
+        logger.info("SKU aggregation complete")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing user database")
     await init_db()
+    scheduler.add_job(run_aggregation_job, 'cron', hour=0, minute=0) 
+    scheduler.start()
 
     global session_error
     logger.info("Booting Home Depot session")
@@ -224,6 +246,39 @@ async def log_sku_event(request: dict):
         session.add(event)
         await session.commit()
         return {"ok": True}
+
+""" 
+Admin/BI endpoints 
+"""
+
+@app.post("/admin/aggregate")
+async def run_aggregation():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text("""
+            INSERT INTO sku_aggregates (id, date, sku, project_type, frequency, total_quantity)
+            SELECT 
+                gen_random_uuid()::text,
+                DATE(timestamp)::text AS date,
+                sku,
+                project_type,
+                COUNT(DISTINCT session_id) AS frequency,
+                SUM(quantity) AS total_quantity
+            FROM sku_events
+            GROUP BY DATE(timestamp), sku, project_type
+            ON CONFLICT DO NOTHING
+        """))
+        await session.commit()
+        return {"ok": True}
+
+@app.get("/admin/aggregates")
+async def get_aggregates():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text("""
+            SELECT date, sku, project_type, frequency, total_quantity
+            FROM sku_aggregates
+            ORDER BY date DESC, frequency DESC
+        """))
+        return [dict(row._mapping) for row in result]
 
 """ 
 Universal endpoints

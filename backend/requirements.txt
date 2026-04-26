@@ -9,3 +9,4 @@ pyvirtualdisplay
 infisical-python
 sqlalchemy[asyncio]
 asyncpg
+apscheduler
