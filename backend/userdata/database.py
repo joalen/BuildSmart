@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, String, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, func
 import uuid
 import os
 
@@ -18,6 +18,17 @@ class Project(Base):
     input = Column(Text, nullable=False)
     plan = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SkuEvent(Base):
+    __tablename__ = "sku_events"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, nullable=False)
+    project_type = Column(String)
+    sku = Column(String, nullable=False)
+    quantity = Column(Integer, default=1)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
 
 async def init_db():
     async with engine.begin() as conn:

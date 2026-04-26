@@ -12,7 +12,7 @@ from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
 from homedepot.search import build_nav_param, find_swap, search_products
 from homedepot.schema import FilteredSearchRequest, SearchRequest, SearchResponse, RecsRequest, SwapRequest
-from userdata.database import init_db, AsyncSessionLocal, Project
+from userdata.database import init_db, AsyncSessionLocal, Project, SkuEvent
 
 
 logging.basicConfig(
@@ -208,6 +208,22 @@ async def get_project(project_id: str):
             "created_at": p.created_at
         }
 
+""" 
+Events endpoints
+"""
+
+@app.post("/events/sku")
+async def log_sku_event(request: dict):
+    async with AsyncSessionLocal() as session:
+        event = SkuEvent(
+            session_id=request["session_id"],
+            project_type=request.get("project_type"),
+            sku=request["sku"],
+            quantity=request.get("quantity", 1),
+        )
+        session.add(event)
+        await session.commit()
+        return {"ok": True}
 
 """ 
 Universal endpoints
