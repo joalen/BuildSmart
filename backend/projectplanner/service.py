@@ -29,10 +29,15 @@ def generate_plan(user_input: str) -> ProjectResponse:
                     { "id": 1, "name": "Tool name" }
                   ],
                   "steps": [
-                    { "id": 1, "title": "Step title", "description": "Detailed description" }
+                    { 
+                      "id": 1, 
+                      "title": "Step title", 
+                      "description": "Detailed description",
+                      "search_keyword": "2-4 word Home Depot search query for products needed in this step"
+                    }
                   ]
                 }
-                Return only valid JSON, no markdown, no explanation."""
+                Return only valid JSON, no markdown, no explanation. Every step MUST include search_keyword. Never omit it."""
             },
             {
                 "role": "user",
@@ -42,12 +47,7 @@ def generate_plan(user_input: str) -> ProjectResponse:
         response_format={ "type": "json_object" }
     )
 
-    raw = response.choices[0].message.content
+    raw = response.choices[0].message.content    
     data = json.loads(raw)
 
-    return ProjectResponse(
-        overview=data["overview"],
-        materials=[Material(**m) for m in data["materials"]],
-        tools=[Tool(**t) for t in data["tools"]],
-        steps=[ProjectStep(**s) for s in data["steps"]],
-    )
+    return ProjectResponse(**data)
