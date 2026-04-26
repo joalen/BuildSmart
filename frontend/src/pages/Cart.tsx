@@ -20,15 +20,10 @@ interface SwapMap {
     [itemId: string]: CartProduct
 }
 
-interface SwapsResponse {
-    products: CartProduct[]
-    total: number
-    swaps: SwapMap
-}
-
 interface CartItem {
     product: CartProduct
     qty: number
+    category: 'material' | 'tool' | 'other'
 }
 
 interface NearbyStore {
@@ -96,7 +91,7 @@ export default function Cart() {
         setLoading(true)
         try {
             const byId: Record<string, CartProduct> = {}
-    
+
             // search for each cart item individually by name
             await Promise.all(
                 cartItems.map(async ({ product: p }) => {
@@ -110,7 +105,7 @@ export default function Cart() {
                     if (data.itemId) byId[data.itemId] = data
                 })
             )
-    
+
             setSwaps({ ...swaps })
             setCartItems(prev => {
                 const updated = prev.map(item => ({
@@ -120,10 +115,10 @@ export default function Cart() {
                 saveCart(updated)
                 return updated
             })
-    
+
             const inStockProduct = Object.values(byId).find(p => p.store_name)
             if (inStockProduct?.store_name) setStoreName(inStockProduct.store_name)
-    
+
             await fetchNearbyStores(targetZip, Object.values(byId))
         } catch (err) {
             console.error('Inventory refresh failed', err)
@@ -204,16 +199,6 @@ export default function Cart() {
         refreshInventory(store.postalCode)
     }
 
-    function handleOpenInHD() {
-        const params = cartItems
-            .map(({ product: p, qty }, i) =>
-                `itemId[${i}]=${p.itemId}&qty[${i}]=${qty}`
-            )
-            .join('&')
-        const url = `https://www.homedepot.com/mycart/home?${params}`
-        window.open(url, '_blank')
-    }
-
     function handleExport() {
         const rows = [
             ['SKU', 'Brand', 'Name', 'Qty', 'Unit Price', 'Total', 'In Stock', 'Store'],
@@ -246,6 +231,12 @@ export default function Cart() {
                 </Button>
             </div>
         )
+    }
+
+    const grouped = {
+        material: cartItems.filter(i => i.category === 'material'),
+        tool: cartItems.filter(i => i.category === 'tool'),
+        other: cartItems.filter(i => i.category === 'other'),
     }
 
     return (
@@ -329,102 +320,114 @@ export default function Cart() {
                             </tr>
                         </thead>
                         <tbody>
-                            {cartItems.map(({ product: p, qty }) => (
-                                <>
-                                    <tr
-                                        key={p.itemId}
-                                        className={`border-b transition-colors ${!p.in_stock ? 'bg-red-50/40' : 'hover:bg-muted/30'}`}
-                                    >
-                                        {/* Thumbnail */}
-                                        <td className="px-4 py-3">
-                                            <div className="w-9 h-9 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                                                {p.image && <img src={p.image} alt="" className="w-full h-full object-cover" />}
-                                            </div>
-                                        </td>
-
-                                        {/* Name */}
-                                        <td className="px-3 py-3">
-                                            <a href={p.url ?? '#'} target="_blank" rel="noreferrer" className="text-xs font-medium leading-snug hover:text-orange-500 line-clamp-2">
-                                                {p.name}
-                                            </a>
-                                            <p className="text-[10px] text-muted-foreground mt-0.5">SKU {p.itemId}</p>
-                                        </td>
-
-                                        {/* Availability */}
-                                        <td className="px-3 py-3">
-                                            {loading
-                                                ? <div className="h-3 w-20 bg-muted animate-pulse rounded" />
-                                                : <StockBadge product={p} />
-                                            }
-                                        </td>
-
-                                        {/* Qty */}
-                                        <td className="px-3 py-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <button
-                                                    onClick={() => updateQty(p.itemId, -1)}
-                                                    className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                                                >
-                                                    <Minus className="w-3 h-3" />
-                                                </button>
-                                                <span className="text-xs font-medium w-5 text-center">{qty}</span>
-                                                <button
-                                                    onClick={() => updateQty(p.itemId, 1)}
-                                                    className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                                                >
-                                                    <Plus className="w-3 h-3" />
-                                                </button>
-                                                <button
-                                                    onClick={() => removeItem(p.itemId)}
-                                                    className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors ml-1"
-                                                >
-                                                    <XCircle className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        </td>
-
-                                        {/* Cost */}
-                                        <td className="px-4 py-3 text-right">
-                                            <span className={`text-xs font-medium ${!p.in_stock ? 'text-muted-foreground' : ''}`}>
-                                                ${p.price ? (p.price * qty).toFixed(2) : 'Price unavailable'}
-                                            </span>
-                                        </td>
-                                    </tr>
-
-                                    {/* Swap row */}
-                                    {!p.in_stock && swaps[p.itemId] && !swappedItems.has(p.itemId) && (
-                                        <tr key={`swap-${p.itemId}`} className="border-b bg-red-50/60">
-                                            <td colSpan={5} className="px-4 py-3">
-                                                <p className="text-[10px] font-medium text-red-600 mb-2 flex items-center gap-1">
-                                                    <ArrowRightLeft className="w-3 h-3" />
-                                                    Swap suggestion — in stock at {swaps[p.itemId].store_name ?? 'nearby store'}
-                                                </p>
-                                                <div className="flex items-center gap-3 bg-white border border-border rounded-lg px-3 py-2.5">
-                                                    <div className="w-9 h-9 rounded bg-muted flex-shrink-0 overflow-hidden">
-                                                        {swaps[p.itemId].image && (
-                                                            <img src={swaps[p.itemId].image!} alt="" className="w-full h-full object-cover" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-medium line-clamp-1">{swaps[p.itemId].name}</p>
-                                                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                                                            {swaps[p.itemId].quantity} units available · {swaps[p.itemId].store_name}
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-xs font-medium flex-shrink-0">${swaps[p.itemId].price?.toFixed(2)}</span>
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-7 text-xs bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
-                                                        onClick={() => applySwap(p.itemId)}
-                                                    >
-                                                        Swap
-                                                    </Button>
-                                                </div>
+                            {(['material', 'tool', 'other'] as const)
+                                .filter(cat => grouped[cat].length > 0)
+                                .map(cat => (
+                                    <>
+                                        <tr key={`header-${cat}`} className="bg-muted/60">
+                                            <td colSpan={5} className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                                {cat === 'material' ? 'Materials' : cat === 'tool' ? 'Tools' : 'Other'}
                                             </td>
                                         </tr>
-                                    )}
-                                </>
-                            ))}
+                                        {grouped[cat].map(({ product: p, qty }) => (
+                                            <>
+                                                <tr
+                                                    key={p.itemId}
+                                                    className={`border-b transition-colors ${!p.in_stock ? 'bg-red-50/40' : 'hover:bg-muted/30'}`}
+                                                >
+                                                    {/* Thumbnail */}
+                                                    <td className="px-4 py-3">
+                                                        <div className="w-9 h-9 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                                                            {p.image && <img src={p.image} alt="" className="w-full h-full object-cover" />}
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Name */}
+                                                    <td className="px-3 py-3">
+                                                        <a href={p.url ?? '#'} target="_blank" rel="noreferrer" className="text-xs font-medium leading-snug hover:text-orange-500 line-clamp-2">
+                                                            {p.name}
+                                                        </a>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">SKU {p.itemId}</p>
+                                                    </td>
+
+                                                    {/* Availability */}
+                                                    <td className="px-3 py-3">
+                                                        {loading
+                                                            ? <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                                                            : <StockBadge product={p} />
+                                                        }
+                                                    </td>
+
+                                                    {/* Qty */}
+                                                    <td className="px-3 py-3">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                onClick={() => updateQty(p.itemId, -1)}
+                                                                className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                                                            >
+                                                                <Minus className="w-3 h-3" />
+                                                            </button>
+                                                            <span className="text-xs font-medium w-5 text-center">{qty}</span>
+                                                            <button
+                                                                onClick={() => updateQty(p.itemId, 1)}
+                                                                className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                                                            >
+                                                                <Plus className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => removeItem(p.itemId)}
+                                                                className="w-6 h-6 rounded border border-border flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors ml-1"
+                                                            >
+                                                                <XCircle className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Cost */}
+                                                    <td className="px-4 py-3 text-right">
+                                                        <span className={`text-xs font-medium ${!p.in_stock ? 'text-muted-foreground' : ''}`}>
+                                                            ${p.price ? (p.price * qty).toFixed(2) : 'Price unavailable'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+
+                                                {/* Swap row */}
+                                                {!p.in_stock && swaps[p.itemId] && !swappedItems.has(p.itemId) && (
+                                                    <tr key={`swap-${p.itemId}`} className="border-b bg-red-50/60">
+                                                        <td colSpan={5} className="px-4 py-3">
+                                                            <p className="text-[10px] font-medium text-red-600 mb-2 flex items-center gap-1">
+                                                                <ArrowRightLeft className="w-3 h-3" />
+                                                                Swap suggestion — in stock at {swaps[p.itemId].store_name ?? 'nearby store'}
+                                                            </p>
+                                                            <div className="flex items-center gap-3 bg-white border border-border rounded-lg px-3 py-2.5">
+                                                                <div className="w-9 h-9 rounded bg-muted flex-shrink-0 overflow-hidden">
+                                                                    {swaps[p.itemId].image && (
+                                                                        <img src={swaps[p.itemId].image!} alt="" className="w-full h-full object-cover" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-xs font-medium line-clamp-1">{swaps[p.itemId].name}</p>
+                                                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                                        {swaps[p.itemId].quantity} units available · {swaps[p.itemId].store_name}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-xs font-medium flex-shrink-0">${swaps[p.itemId].price?.toFixed(2)}</span>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-7 text-xs bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+                                                                    onClick={() => applySwap(p.itemId)}
+                                                                >
+                                                                    Swap
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        ))}
+                                    </>
+                                ))
+                            }
                         </tbody>
                     </table>
                 </div>
