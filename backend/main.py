@@ -40,7 +40,11 @@ async def run_aggregation_job():
                 SUM(quantity)
             FROM sku_events
             GROUP BY DATE(timestamp), sku, project_type
-            ON CONFLICT DO NOTHING
+            ON CONFLICT ON CONSTRAINT uq_sku_aggregate 
+            DO UPDATE SET
+                frequency = EXCLUDED.frequency,
+                total_quantity = EXCLUDED.total_quantity,
+                computed_at = NOW()
         """))
         await session.commit()
         logger.info("SKU aggregation complete")
@@ -265,7 +269,11 @@ async def run_aggregation():
                 SUM(quantity) AS total_quantity
             FROM sku_events
             GROUP BY DATE(timestamp), sku, project_type
-            ON CONFLICT DO NOTHING
+            ON CONFLICT ON CONSTRAINT uq_sku_aggregate 
+            DO UPDATE SET
+                frequency = EXCLUDED.frequency,
+                total_quantity = EXCLUDED.total_quantity,
+                computed_at = NOW()
         """))
         await session.commit()
         return {"ok": True}

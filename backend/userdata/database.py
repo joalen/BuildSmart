@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, UniqueConstraint, func
 import uuid
 import os
 
@@ -40,6 +40,10 @@ class SkuAggregate(Base):
     total_quantity = Column(Integer, default=0) # sum of quantities
     computed_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    __table_args__ = (
+        UniqueConstraint('date', 'sku', 'project_type', name='uq_sku_aggregate'),
+    )
+    
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
