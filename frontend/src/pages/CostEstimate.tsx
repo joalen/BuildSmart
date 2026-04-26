@@ -5,7 +5,6 @@ import { ArrowLeft, ExternalLink, Loader2, Package, Wrench, ChevronDown, Shoppin
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 
-
 interface Material { id: number; name: string; quantity: string; unit: string }
 interface Tool { id: number; name: string }
 interface Step { id: number; title: string; description: string }
@@ -29,6 +28,15 @@ interface CartItem {
   }
   qty: number
   category: 'material' | 'tool' | 'other'
+}
+
+const getSessionId = () => {
+  let id = sessionStorage.getItem('session_id')
+  if (!id) {
+      id = crypto.randomUUID()
+      sessionStorage.setItem('session_id', id)
+  }
+  return id
 }
 
 export default function CostEstimate() {
@@ -99,7 +107,7 @@ export default function CostEstimate() {
     fetchProducts()
   }, [])
 
-  function addToCart(p: HDProduct, category: 'material' | 'tool' | 'other' = 'other') {
+  async function addToCart(p: HDProduct, category: 'material' | 'tool' | 'other' = 'other') {
     const stored = localStorage.getItem('buildsmart_cart')
     const cart: CartItem[] = stored ? JSON.parse(stored) : []
     const existing = cart.find(item => item.product.itemId === p.itemId)
@@ -122,6 +130,18 @@ export default function CostEstimate() {
         category
       })
     }
+
+    await fetch('http://localhost:8000/events/sku', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: getSessionId(),
+        project_type: input,
+        sku: p.itemId,
+        quantity: 1
+      })
+    })
+
     localStorage.setItem('buildsmart_cart', JSON.stringify(cart))
     setAddedItems(prev => new Set([...prev, p.itemId]))
   }
