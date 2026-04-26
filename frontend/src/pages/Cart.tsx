@@ -92,7 +92,6 @@ export default function Cart() {
         try {
             const byId: Record<string, CartProduct> = {}
 
-            // search for each cart item individually by name
             await Promise.all(
                 cartItems.map(async ({ product: p }) => {
                     const res = await fetch('http://localhost:8000/homedepot/item', {
@@ -106,7 +105,35 @@ export default function Cart() {
                 })
             )
 
-            setSwaps({ ...swaps })
+            
+            const oosItems = Object.values(byId).filter(p => !p.in_stock)
+
+            const swapResults = await Promise.all(
+                oosItems.map(async (p) => {
+                    const res = await fetch('http://localhost:8000/homedepot/search/with-swaps', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            keyword: p.name,
+                            storeId: '550',
+                            zipCode: targetZip,
+                        })
+                    })
+                    if (!res.ok) return null
+                    const data = await res.json()
+                    const swap = data.products?.find(
+                        (s: any) => s.in_stock && s.itemId !== p.itemId
+                    )
+                    return swap ? { originalId: p.itemId, swap } : null
+                })
+            )
+
+            const newSwaps: SwapMap = {}
+            for (const result of swapResults) {
+                if (result) newSwaps[result.originalId] = result.swap
+            }
+
+            setSwaps(newSwaps)
             setCartItems(prev => {
                 const updated = prev.map(item => ({
                     ...item,
@@ -118,8 +145,8 @@ export default function Cart() {
 
             const inStockProduct = Object.values(byId).find(p => p.store_name)
             if (inStockProduct?.store_name) setStoreName(inStockProduct.store_name)
-
             await fetchNearbyStores(targetZip, Object.values(byId))
+
         } catch (err) {
             console.error('Inventory refresh failed', err)
         } finally {
