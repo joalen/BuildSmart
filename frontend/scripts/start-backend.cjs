@@ -72,7 +72,7 @@ async function main() {
       }
     })
   } else {
-    console.log('🔨 Building backend for first time...')
+    console.log('Building backend for first time...')
     spawn('docker', ['compose', '-f', COMPOSE_FILE, 'up', '--build', 'backend'], { stdio: 'inherit' })
   }
 }

@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, ArrowRight, Package, Wrench, ListChecks, AlignLeft } from 'lucide-react'
 
 interface Material { id: number; name: string; quantity: string; unit: string }
 interface Tool { id: number; name: string }
-interface Step { id: number; title: string; description: string }
+interface Step { id: number; title: string; description: string; search_keyword: string }
 interface PlanData { overview: string; materials: Material[]; tools: Tool[]; steps: Step[]; input: string }
 
 const PREVIEW_COUNT = 3
@@ -14,8 +14,32 @@ export default function PlanResult() {
   const location = useLocation()
   const navigate = useNavigate()
   const { steps, materials, tools, overview, input } = location.state as PlanData
+  const [stepProducts, setStepProducts] = useState<Record<number, any[]>>({})
   const [expanded, setExpanded] = useState(false)
   const visibleSteps = expanded ? steps : steps.slice(0, PREVIEW_COUNT)
+
+  useEffect(() => {
+    const fetchStepProducts = async () => {
+      const results: Record<number, any[]> = {}
+      await Promise.all(
+        steps
+          .filter(s => s.search_keyword)
+          .map(async (step) => {
+            const res = await fetch('http://localhost:8000/homedepot/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ keyword: step.search_keyword, storeId: '550' })
+            })
+            const data = await res.json()
+            results[step.id] = (data.products ?? [])
+              .filter(p => p.in_stock)
+              .slice(0, 2)
+          })
+      )
+      setStepProducts(results)
+    }
+    fetchStepProducts()
+  }, [])
 
   return (
     <div className="h-full overflow-y-auto">
@@ -117,9 +141,26 @@ export default function PlanResult() {
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium shrink-0 mt-0.5">
                   {step.id}
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">{step.title}</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+
+                  {stepProducts[step.id]?.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1">
+                      {stepProducts[step.id].map(p => (
+                        <a
+                          key={p.itemId}
+                          href={`https://homedepot.com/p/${p.itemId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs hover:bg-muted"
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          <span className="text-muted-foreground ml-2">${p.price}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -135,6 +176,6 @@ export default function PlanResult() {
         </div>
 
       </div>
-    </div>
+    </div >
   )
 }

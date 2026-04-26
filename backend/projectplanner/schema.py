@@ -18,7 +18,8 @@ class ProjectStep(BaseModel):
     id: int
     title: str
     description: str
-
+    search_keyword: str
+    
 class ProjectResponse(BaseModel):
     overview: str
     materials: List[Material]
