@@ -10,3 +10,5 @@ infisical-python
 sqlalchemy[asyncio]
 asyncpg
 apscheduler
+tenacity
+pyarrow

@@ -6,6 +6,12 @@ from contextlib import asynccontextmanager
 import json as json_lib
 from sqlalchemy import select, text
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import csv
+import os
+from tenacity import retry, stop_after_attempt, wait_fixed
+from datetime import datetime, timezone
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from projectplanner.service import generate_plan
 from projectplanner.schema import ProjectRequest
@@ -22,10 +28,44 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+EXPORT_DIR = "/app/exports"
+
 logger = logging.getLogger(__name__)
 hd_session = HomeDepotSession()
 scheduler = AsyncIOScheduler()
 session_error: str | None = None
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
+async def export_aggregates():
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text("""
+            SELECT date, sku, project_type, frequency, total_quantity
+            FROM sku_aggregates
+            ORDER BY date DESC, frequency DESC
+        """))
+        rows = [dict(row._mapping) for row in result]
+
+    if not rows:
+        logger.info("No aggregates to export")
+        return
+
+    date_str = datetime.now(timezone.utc).strftime('%Y%m%d')
+
+    # CSV export pipeline
+    csv_file = f"{EXPORT_DIR}/sku_aggregates_{date_str}.csv"
+    with open(csv_file, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['date', 'sku', 'project_type', 'frequency', 'total_quantity'])
+        writer.writeheader()
+        writer.writerows(rows)
+    logger.info(f"CSV exported: {csv_file}")
+
+    # Parquet (for data warehouse tools)
+    parquet_file = f"{EXPORT_DIR}/sku_aggregates_{date_str}.parquet"
+    table = pa.Table.from_pylist(rows)
+    pq.write_table(table, parquet_file)
+    logger.info(f"Parquet exported: {parquet_file}")
 
 async def run_aggregation_job():
     async with AsyncSessionLocal() as session:
@@ -54,6 +94,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing user database")
     await init_db()
     scheduler.add_job(run_aggregation_job, 'cron', hour=0, minute=0) 
+    scheduler.add_job(export_aggregates, 'cron', hour=1, minute=0)
     scheduler.start()
 
     global session_error
@@ -287,6 +328,15 @@ async def get_aggregates():
             ORDER BY date DESC, frequency DESC
         """))
         return [dict(row._mapping) for row in result]
+
+@app.post("/admin/export")
+async def trigger_export():
+    try:
+        await export_aggregates()
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"Export failed after retries: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 """ 
 Universal endpoints
