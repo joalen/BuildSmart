@@ -12,6 +12,7 @@ To ensure that we follow best practices for Git related things, create a branch 
 
 ### Frontend
 All frontend related work is within the frontend folder and is formatted in this structure: 
+```sh
 .
 ├── public
 │   └── assets
@@ -22,6 +23,7 @@ All frontend related work is within the frontend folder and is formatted in this
     ├── hooks
     ├── lib
     └── pages
+```
 
 assets: self-explanatory but shows you all the global images, fonts, and etc for the project that are static in nature and do not need to be dynamically imported or fetched
 scripts: another folder for JS/TS stuff for frontend logic or rendering if we need it
@@ -32,9 +34,11 @@ pages: these are the website pages for each of the BuildSmart we need and is bas
 
 ### Backend
 All backend related work is within the backend folder and is formatted in this structure: 
+```
 .
 ├── homedepot
 └── projectplanner
+```
 
 _There are more folders of interest needed to be made but the above serves its purpose below_
 
