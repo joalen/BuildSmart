@@ -152,11 +152,14 @@ async def get_filters():
 async def get_item(request: dict):
     item_id = request.get("itemId")
     store_id = request.get("storeId", "550")
+    qty = request.get("qty", 1)
     result = await search_products(
         hd_session,
         SearchRequest(keyword=item_id, storeId=store_id),
     )
     match = next((p for p in result.products if p.itemId == item_id), None)
+    if match and match.quantity is not None:
+        match.in_stock = match.quantity >= qty
     return match or {}
 
 @app.post("/homedepot/search/filtered", response_model=SearchResponse)

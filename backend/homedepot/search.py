@@ -170,7 +170,7 @@ async def find_swap(
     candidates = [
         p for p in results.products
         if p.itemId != oos_product.itemId
-        and p.in_stock  # add this
+        and p.in_stock
         and p.price is not None
         and oos_product.price is not None
         and abs(p.price - oos_product.price) / oos_product.price <= 0.20
