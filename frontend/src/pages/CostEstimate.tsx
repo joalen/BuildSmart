@@ -28,6 +28,7 @@ interface CartItem {
     quantity: number | null
   }
   qty: number
+  category: 'material' | 'tool' | 'other'
 }
 
 export default function CostEstimate() {
@@ -98,7 +99,7 @@ export default function CostEstimate() {
     fetchProducts()
   }, [])
 
-  function addToCart(p: HDProduct) {
+  function addToCart(p: HDProduct, category: 'material' | 'tool' | 'other' = 'other') {
     const stored = localStorage.getItem('buildsmart_cart')
     const cart: CartItem[] = stored ? JSON.parse(stored) : []
     const existing = cart.find(item => item.product.itemId === p.itemId)
@@ -117,7 +118,8 @@ export default function CostEstimate() {
           in_stock: false,
           store_name: null,
           quantity: null,
-        }
+        },
+        category
       })
     }
     localStorage.setItem('buildsmart_cart', JSON.stringify(cart))
@@ -127,7 +129,7 @@ export default function CostEstimate() {
   const totalCost = enrichedMaterials.reduce((sum, m) => sum + (m.products[0]?.price ?? 0), 0)
   const cartCount = addedItems.size
 
-  const renderProducts = (products: HDProduct[]) => (
+  const renderProducts = (products: HDProduct[], category: 'material' | 'tool' | 'other') => (
     <div className="grid grid-cols-3 gap-2">
       {products.map((p) => (
         <div key={p.itemId} className="border rounded-lg p-2 space-y-1">
@@ -143,7 +145,7 @@ export default function CostEstimate() {
             size="sm"
             variant={addedItems.has(p.itemId) ? "outline" : "default"}
             className={`w-full h-7 text-xs gap-1 ${addedItems.has(p.itemId) ? 'text-green-600 border-green-300' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
-            onClick={() => addToCart(p)}
+            onClick={() => addToCart(p, category)}
           >
             {addedItems.has(p.itemId)
               ? <><Check className="w-3 h-3" /> Added</>
@@ -216,7 +218,7 @@ export default function CostEstimate() {
                         <p className="text-sm font-medium">{m.name}</p>
                         <span className="text-xs text-muted-foreground">{m.quantity} {m.unit}</span>
                       </div>
-                      {renderProducts(m.products)}
+                      {renderProducts(m.products, 'material')}
                     </div>
                   ))}
                 </CollapsibleContent>
@@ -238,7 +240,7 @@ export default function CostEstimate() {
                   {enrichedTools.map((t) => (
                     <div key={t.id} className="space-y-2">
                       <p className="text-sm font-medium">{t.name}</p>
-                      {renderProducts(t.products)}
+                      {renderProducts(t.products, 'tool')}
                     </div>
                   ))}
                 </CollapsibleContent>
