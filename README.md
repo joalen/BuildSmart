@@ -25,11 +25,11 @@ All frontend related work is within the frontend folder and is formatted in this
     └── pages
 ```
 
-assets: self-explanatory but shows you all the global images, fonts, and etc for the project that are static in nature and do not need to be dynamically imported or fetched
-scripts: another folder for JS/TS stuff for frontend logic or rendering if we need it
-components: this contains shadcn related materials + custom things that help build out the BuildSmart website. If you need to build things for graphs or whatnot, use this folder to help organize that
-hooks: mainly for save state or loading stuff
-pages: these are the website pages for each of the BuildSmart we need and is based off the wireframes we've discussed.
+- assets: self-explanatory but shows you all the global images, fonts, and etc for the project that are static in nature and do not need to be dynamically imported or fetched
+- scripts: another folder for JS/TS stuff for frontend logic or rendering if we need it
+- components: this contains shadcn related materials + custom things that help build out the BuildSmart website. If you need to build things for graphs or whatnot, use this folder to help organize that
+- hooks: mainly for save state or loading stuff
+- pages: these are the website pages for each of the BuildSmart we need and is based off the wireframes we've discussed.
 
 
 ### Backend
@@ -42,5 +42,5 @@ All backend related work is within the backend folder and is formatted in this s
 
 _There are more folders of interest needed to be made but the above serves its purpose below_
 
-homedepot: this goes to the Home Depot website and spins up a headless browser to help reroute requests and fetch live Home Depot results
-projectplanner: this is the OpenAI ChatGPT wrapper that's there to take in natural queries and spin up structured data for frontend to render and use
+- homedepot: this goes to the Home Depot website and spins up a headless browser to help reroute requests and fetch live Home Depot results
+- projectplanner: this is the OpenAI ChatGPT wrapper that's there to take in natural queries and spin up structured data for frontend to render and use
