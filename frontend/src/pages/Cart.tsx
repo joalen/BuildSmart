@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle, CheckCircle2, XCircle, ShoppingCart, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import React from 'react'
 
 interface CartProduct {
     itemId: string
@@ -86,6 +87,11 @@ export default function Cart() {
     const [nearbyStores, setNearbyStores] = useState<NearbyStore[]>([])
     const [loading, setLoading] = useState(false)
     const [swappedItems, setSwappedItems] = useState<Set<string>>(new Set())
+    const cartItemsRef = useRef(cartItems)
+
+    useEffect(() => {
+        cartItemsRef.current = cartItems
+    }, [cartItems])
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
         try {
@@ -129,6 +135,7 @@ export default function Cart() {
         setLoading(true)
         try {
             const byId: Record<string, CartProduct> = {}
+            const currentItems = cartItemsRef.current
 
             const storesRes = await fetch('http://localhost:8000/homedepot/nearby-stores', {
                 method: 'POST',
@@ -139,11 +146,11 @@ export default function Cart() {
             const resolvedStoreId = stores[0]?.storeId ?? '550'
 
             await Promise.all(
-                cartItems.map(async ({ product: p }) => {
+                currentItems.map(async ({ product: p }) => {
                     const res = await fetch('http://localhost:8000/homedepot/item', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ itemId: p.itemId, storeId: resolvedStoreId }),
+                        body: JSON.stringify({ itemId: p.itemId, storeId: resolvedStoreId, qty: currentItems.find(i => i.product.itemId === p.itemId)?.qty ?? 1 }),
                     })
                     if (!res.ok) return
                     const data: CartProduct = await res.json()
@@ -200,12 +207,6 @@ export default function Cart() {
         }
     }, [cartItems])
 
-    useEffect(() => {
-        if (cartItems.length > 0) {
-            refreshInventory(zip)
-        }
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
     function updateQty(itemId: string, delta: number) {
         setCartItems(prev => {
             const updated = prev.map(item =>
@@ -216,12 +217,17 @@ export default function Cart() {
             saveCart(updated)
             return updated
         })
+
+        clearTimeout((window as any)._qtyRefreshTimer)
+        ;(window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
     }
 
     function removeItem(itemId: string) {
         setCartItems(prev => {
             const updated = prev.filter(item => item.product.itemId !== itemId)
             saveCart(updated)
+
+            if (updated.length > 0) refreshInventory(zip)
             return updated
         })
     }
@@ -277,6 +283,12 @@ export default function Cart() {
     const oos = cartItems.filter(item => !item.product.in_stock && !swappedItems.has(item.product.itemId))
     const subtotal = cartItems.reduce((sum, { product: p, qty }) => sum + (p.price ?? 0) * qty, 0)
     const inStockCount = cartItems.filter(item => item.product.in_stock).length
+
+    useEffect(() => {
+        if (cartItems.length > 0) {
+            refreshInventory(zip)
+        }
+    }, [])
 
     // Empty state
     if (cartItems.length === 0) {
@@ -382,7 +394,7 @@ export default function Cart() {
                             {(['material', 'tool', 'other'] as const)
                                 .filter(cat => grouped[cat].length > 0)
                                 .map(cat => (
-                                    <>
+                                    <React.Fragment key={cat}>
                                         <tr key={`header-${cat}`} className="bg-muted/60">
                                             <td colSpan={5} className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                                                 {cat === 'material' ? 'Materials' : cat === 'tool' ? 'Tools' : 'Other'}
@@ -484,7 +496,7 @@ export default function Cart() {
                                                 )}
                                             </>
                                         ))}
-                                    </>
+                                    </React.Fragment>
                                 ))
                             }
                         </tbody>
