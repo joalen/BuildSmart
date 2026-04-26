@@ -139,6 +139,17 @@ async def search_with_swaps(request: SwapRequest):
         }
     }
 
+@app.post("/homedepot/nearby-stores")
+async def nearby_stores(request: dict):
+    zip_code = request.get("zipCode")
+    if not zip_code:
+        raise HTTPException(status_code=400, detail="zipCode required")
+    try:
+        stores = await hd_session.get_nearby_stores(zip_code)
+        return stores
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/health")
 async def health():
     return {

@@ -129,16 +129,40 @@ export default function Cart() {
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
         try {
-            const res = await fetch('http://localhost:8000/homedepot/filters')
-            if (res.ok) {
-                setNearbyStores([
-                    { storeId: '550', storeName: 'White Rock', distance: '4.8 mi', postalCode: '75218', available: 5, total: cartItems.length },
-                    { storeId: '6537', storeName: 'Mesquite', distance: '5.1 mi', postalCode: '75150', available: 6, total: cartItems.length },
-                    { storeId: '555', storeName: 'Balch Springs', distance: '5.5 mi', postalCode: '75180', available: 7, total: cartItems.length },
-                    { storeId: '8951', storeName: 'Rowlett', distance: '8.1 mi', postalCode: '75088', available: cartItems.length, total: cartItems.length },
-                ])
-            }
-        } catch { }
+            const storesRes = await fetch('http://localhost:8000/homedepot/nearby-stores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ zipCode: targetZip })
+            })
+            if (!storesRes.ok) return
+            const stores: { storeId: string; storeName: string; distance: string; postalCode: string }[] = await storesRes.json()
+    
+            const storesWithAvailability = await Promise.all(
+                stores.map(async store => {
+                    const checks = await Promise.all(
+                        products.map(async p => {
+                            const res = await fetch('http://localhost:8000/homedepot/item', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ itemId: p.itemId, storeId: store.storeId })
+                            })
+                            if (!res.ok) return false
+                            const data: CartProduct = await res.json()
+                            return data.in_stock
+                        })
+                    )
+                    return {
+                        ...store,
+                        available: checks.filter(Boolean).length,
+                        total: products.length
+                    }
+                })
+            )
+    
+            setNearbyStores(storesWithAvailability)
+        } catch (err) {
+            console.error('fetchNearbyStores failed', err)
+        }
     }
 
     useEffect(() => {

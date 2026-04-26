@@ -120,6 +120,51 @@ class HomeDepotSession:
         
         return stores[0]["storeId"]
 
+    async def get_nearby_stores(self, zip_code: str) -> list[dict]:
+        payload = {
+            "operationName": "storeSearch",
+            "variables": {
+                "lat": "", "lng": "",
+                "pagesize": "5",
+                "storeSearchInput": zip_code,
+                "storeFeaturesFilter": {
+                    "applianceShowroom": False, "expandedFlooringShowroom": False,
+                    "wiFi": False, "keyCutting": False, "loadNGo": False,
+                    "propane": False, "toolRental": False, "penske": False,
+                }
+            },
+            "query": STORE_FINDER_QUERY
+        }
+
+        result = await self.page.evaluate("""
+            async ({ url, payload }) => {
+                const resp = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        "x-experience-name": "header-footer-static",
+                        "x-debug": "false",
+                        "x-hd-dc": "origin",
+                    },
+                    body: JSON.stringify(payload)
+                });
+                return await resp.json();
+            }
+        """, {"url": STORE_FINDER_URL, "payload": payload})
+
+        stores = result.get("data", {}).get("storeSearch", {}).get("stores", [])
+        
+        return [
+            {
+                "storeId": s["storeId"],
+                "storeName": s["name"],
+                "distance": f"{s['distance']} mi",
+                "postalCode": s["address"]["postalCode"],
+                "city": s["address"]["city"],
+            }
+            for s in stores
+        ]
+
     async def init(self):
         if self.browser:
             await self.browser.close()
