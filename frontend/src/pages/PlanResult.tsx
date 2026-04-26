@@ -10,6 +10,15 @@ interface PlanData { overview: string; materials: Material[]; tools: Tool[]; ste
 
 const PREVIEW_COUNT = 3
 
+const getSessionId = () => {
+  let id = sessionStorage.getItem('session_id')
+  if (!id) {
+      id = crypto.randomUUID()
+      sessionStorage.setItem('session_id', id)
+  }
+  return id
+}
+
 export default function PlanResult() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -22,7 +31,7 @@ export default function PlanResult() {
   useEffect(() => {
     if (savedRef.current) return
     savedRef.current = true
-    
+
     const fetchStepProducts = async () => {
       const results: Record<number, any[]> = {}
       await Promise.all(
@@ -41,6 +50,21 @@ export default function PlanResult() {
           })
       )
       setStepProducts(results)
+
+      Object.entries(results).forEach(([_, products]) => {
+        products.forEach(p => {
+          fetch('http://localhost:8000/events/sku', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: getSessionId(),
+              project_type: input,
+              sku: p.itemId,
+              quantity: 1
+            })
+          })
+        })
+      })
     }
     fetchStepProducts()
   }, [])
