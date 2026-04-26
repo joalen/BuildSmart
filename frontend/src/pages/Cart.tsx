@@ -499,9 +499,6 @@ export default function Cart() {
                             <span className="text-base font-bold">${subtotal.toFixed(2)}</span>
                         </div>
                         <div className="mt-4 flex flex-col gap-2">
-                            <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm h-9">
-                                Proceed to checkout
-                            </Button>
                             <Button variant="outline" className="w-full text-sm h-9">
                                 Save project
                             </Button>
