@@ -87,17 +87,63 @@ export default function Cart() {
     const [loading, setLoading] = useState(false)
     const [swappedItems, setSwappedItems] = useState<Set<string>>(new Set())
 
+    async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
+        try {
+            const storesRes = await fetch('http://localhost:8000/homedepot/nearby-stores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ zipCode: targetZip })
+            })
+            if (!storesRes.ok) return
+            const stores: { storeId: string; storeName: string; distance: string; postalCode: string }[] = await storesRes.json()
+
+            const storesWithAvailability = await Promise.all(
+                stores.map(async store => {
+                    const checks = await Promise.all(
+                        products.map(async p => {
+                            const res = await fetch('http://localhost:8000/homedepot/item', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ itemId: p.itemId, storeId: store.storeId })
+                            })
+                            if (!res.ok) return false
+                            const data: CartProduct = await res.json()
+                            return data.in_stock
+                        })
+                    )
+                    return {
+                        ...store,
+                        available: checks.filter(Boolean).length,
+                        total: products.length
+                    }
+                })
+            )
+    
+            setNearbyStores(storesWithAvailability)
+        } catch (err) {
+            console.error('fetchNearbyStores failed', err)
+        }
+    }
+
     const refreshInventory = useCallback(async (targetZip: string) => {
         setLoading(true)
         try {
             const byId: Record<string, CartProduct> = {}
+
+            const storesRes = await fetch('http://localhost:8000/homedepot/nearby-stores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ zipCode: targetZip })
+            })
+            const stores = await storesRes.json()
+            const resolvedStoreId = stores[0]?.storeId ?? '550'
 
             await Promise.all(
                 cartItems.map(async ({ product: p }) => {
                     const res = await fetch('http://localhost:8000/homedepot/item', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ itemId: p.itemId, storeId: '550' }),
+                        body: JSON.stringify({ itemId: p.itemId, storeId: resolvedStoreId }),
                     })
                     if (!res.ok) return
                     const data: CartProduct = await res.json()
@@ -153,44 +199,6 @@ export default function Cart() {
             setLoading(false)
         }
     }, [cartItems])
-
-    async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
-        try {
-            const storesRes = await fetch('http://localhost:8000/homedepot/nearby-stores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ zipCode: targetZip })
-            })
-            if (!storesRes.ok) return
-            const stores: { storeId: string; storeName: string; distance: string; postalCode: string }[] = await storesRes.json()
-    
-            const storesWithAvailability = await Promise.all(
-                stores.map(async store => {
-                    const checks = await Promise.all(
-                        products.map(async p => {
-                            const res = await fetch('http://localhost:8000/homedepot/item', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ itemId: p.itemId, storeId: store.storeId })
-                            })
-                            if (!res.ok) return false
-                            const data: CartProduct = await res.json()
-                            return data.in_stock
-                        })
-                    )
-                    return {
-                        ...store,
-                        available: checks.filter(Boolean).length,
-                        total: products.length
-                    }
-                })
-            )
-    
-            setNearbyStores(storesWithAvailability)
-        } catch (err) {
-            console.error('fetchNearbyStores failed', err)
-        }
-    }
 
     useEffect(() => {
         if (cartItems.length > 0) {
