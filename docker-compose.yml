@@ -3,6 +3,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./exports:/app/exports
     environment:
       - DISPLAY=:99
       - PYTHONUNBUFFERED=1
