@@ -1,14 +1,19 @@
 import asyncio
+import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import json as json_lib
+from sqlalchemy import select
+
 from projectplanner.service import generate_plan
 from projectplanner.schema import ProjectRequest
 from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
 from homedepot.search import build_nav_param, find_swap, search_products
 from homedepot.schema import FilteredSearchRequest, SearchRequest, SearchResponse, RecsRequest, SwapRequest
-import logging
+from userdata.database import init_db, AsyncSessionLocal, Project
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +27,9 @@ session_error: str | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Initializing user database")
+    await init_db()
+
     global session_error
     logger.info("Booting Home Depot session")
     try:
@@ -50,6 +58,9 @@ app.add_middleware(
 def generate(request: ProjectRequest):
     return generate_plan(request.input)
 
+""" 
+All Home Depot endpoints are here
+"""
 @app.post("/homedepot/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
     try:
@@ -149,6 +160,58 @@ async def nearby_stores(request: dict):
         return stores
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+""" 
+Projects endpoint
+"""
+@app.post("/projects")
+async def save_project(request: dict):
+    async with AsyncSessionLocal() as session:
+        project = Project(
+            input=request["input"],
+            plan=json_lib.dumps(request["plan"])
+        )
+        session.add(project)
+        await session.commit()
+        return {"id": project.id}
+
+@app.get("/projects")
+async def list_projects():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Project).order_by(Project.created_at.desc()).limit(20)
+        )
+        projects = result.scalars().all()
+        return [
+            {
+                "id": p.id,
+                "input": p.input,
+                "plan": json_lib.loads(p.plan),
+                "created_at": p.created_at
+            }
+            for p in projects
+        ]
+
+@app.get("/projects/{project_id}")
+async def get_project(project_id: str):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Project).where(Project.id == project_id)
+        )
+        p = result.scalar_one_or_none()
+        if not p:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return {
+            "id": p.id,
+            "input": p.input,
+            "plan": json_lib.loads(p.plan),
+            "created_at": p.created_at
+        }
+
+
+""" 
+Universal endpoints
+"""
 
 @app.get("/health")
 async def health():

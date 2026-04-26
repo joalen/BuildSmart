@@ -7,3 +7,5 @@ httpx
 playwright
 pyvirtualdisplay
 infisical-python
+sqlalchemy[asyncio]
+asyncpg

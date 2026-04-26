@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, ArrowRight, Package, Wrench, ListChecks, AlignLeft } from 'lucide-react'
@@ -17,8 +17,12 @@ export default function PlanResult() {
   const [stepProducts, setStepProducts] = useState<Record<number, any[]>>({})
   const [expanded, setExpanded] = useState(false)
   const visibleSteps = expanded ? steps : steps.slice(0, PREVIEW_COUNT)
+  const savedRef = useRef(false)
 
   useEffect(() => {
+    if (savedRef.current) return
+    savedRef.current = true
+    
     const fetchStepProducts = async () => {
       const results: Record<number, any[]> = {}
       await Promise.all(
@@ -39,6 +43,26 @@ export default function PlanResult() {
       setStepProducts(results)
     }
     fetchStepProducts()
+  }, [])
+
+  useEffect(() => {
+    const saveProject = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input,
+            plan: { overview, materials, tools, steps }
+          })
+        })
+        const { id } = await res.json()
+        console.log('Project saved:', id)
+      } catch (err) {
+        console.error('Failed to save project:', err)
+      }
+    }
+    saveProject()
   }, [])
 
   return (
