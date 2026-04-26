@@ -1,10 +1,11 @@
 import os 
 import json
 from openai import OpenAI
-from dotenv import load_dotenv
 from projectplanner.schema import ProjectResponse, ProjectStep, Material, Tool
+from appsecrets import load_secrets
 
-load_dotenv()
+load_secrets()
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_plan(user_input: str) -> ProjectResponse:

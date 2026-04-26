@@ -6,3 +6,4 @@ requests
 httpx
 playwright
 pyvirtualdisplay
+infisical-python
