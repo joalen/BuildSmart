@@ -2,7 +2,7 @@ _Note: we need to update this with our actual Software Engineering Document. For
 
 ## How to Deploy
 1. Make sure you have Python 3.14 installed + Docker Desktop (desktop includes the CLI and is there for troubleshooting)
-2. If you are a collaborator, you should've received a .env file that is needed to run this software
+2. If you are a collaborator, you should've received a .env file that is needed to run this software. Make sure to put this environment file inside the root of backend folder (just backend/ folder, not in any sub-folders)
 3. To check out the development version of BuildSmart, run `npm run dev` in the frontend/ folder and that should spin up the Vite build process + the Docker container responsible for serving the backend logic. 
 4. Wait for VITE to show that it is ready in addition to the Container also starting (if first time, you'll need to wait a bit for it to completely install and build)
 5. Backend indicates ready if it shows Uvicorn running on localhost (you can press Ctrl + C to stop the entire workflow)
