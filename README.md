@@ -44,3 +44,16 @@ _There are more folders of interest needed to be made but the above serves its p
 
 - homedepot: this goes to the Home Depot website and spins up a headless browser to help reroute requests and fetch live Home Depot results
 - projectplanner: this is the OpenAI ChatGPT wrapper that's there to take in natural queries and spin up structured data for frontend to render and use
+
+## Common Troublehooting and FAQs
+Common pitfalls that might happen during development 
+1. My code did not update even though I saved
+Check to make sure that the docker container is stopped before trying again. Ctrl + C to stop the docker container fully (you might wanna press or spam three times to fully quit). Then, you'll want to run `npm run dev` again
+
+2. My code _still_ did not update even though I saved and did troublehshooting #1
+It could be a stale docker cache, for this, you'll want to run `docker compose down --rmi all `. Once the command completes, then you can run `npm run dev`
+
+3. Session boot failed
+Frontend will not continue when this error happens.
+
+However, if that happens, it means that the Home Depot API detected unusual activity within the internal navigator. You can run troubleshooting #1 and have that fully restart the backend. This shouldn't happen under normal circumstances but it can be intermittent depending on your environment
