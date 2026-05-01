@@ -137,7 +137,7 @@ export default function Cart() {
                     }
                 })
             )
-    
+
             setNearbyStores(storesWithAvailability)
         } catch (err) {
             console.error('fetchNearbyStores failed', err)
@@ -171,7 +171,7 @@ export default function Cart() {
                 })
             )
 
-            
+
             const oosItems = Object.values(byId).filter(p => !p.in_stock)
 
             const swapResults = await Promise.all(
@@ -232,7 +232,7 @@ export default function Cart() {
         })
 
         clearTimeout((window as any)._qtyRefreshTimer)
-        ;(window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
+            ; (window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
     }
 
     function removeItem(itemId: string) {
@@ -527,9 +527,9 @@ export default function Cart() {
                         <p className="text-sm font-medium mb-3">Order summary</p>
                         <div className="space-y-2 text-xs text-muted-foreground">
                             <div className="flex justify-between"><span>subtotal ({cartItems.length} items)</span><span className="text-foreground font-medium">${subtotal.toFixed(2)}</span></div>
-                            <div className="flex justify-between"><span>Estimated Sales Tax ({(taxRate * 100).toFixed(2)}%)</span><span className="text-foreground font-medium">${taxAmount.toFixed(2)}</span></div><div className="flex justify-between border-t pt-2 mt-1"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
-                            <div className="flex justify-between"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
-                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>Estimated Sales Tax ({(taxRate * 100).toFixed(2)}%)</span><span className="text-foreground font-medium">${taxAmount.toFixed(2)}</span></div>
+                            <div className="flex justify-between border-t pt-2 mt-1"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
                         </div>
                         <div className="border-t mt-3 pt-3 flex justify-between items-baseline">
                             <span className="text-sm font-medium">Estimated total</span>

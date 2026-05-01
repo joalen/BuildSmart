@@ -26,7 +26,7 @@ def hd_loop():
 def hd_session(hd_loop):
     session = HomeDepotSession()
     hd_loop.run_until_complete(session.init())
-    hd_loop.run_until_complete(session.page.goto("https://www.homedepot.com"))
+    hd_loop.run_until_complete(session.page.goto("https://www.homedepot.com", wait_until="domcontentloaded"))
     hd_loop.run_until_complete(session.page.wait_for_load_state("load"))
     yield session
     hd_loop.run_until_complete(session.close())
