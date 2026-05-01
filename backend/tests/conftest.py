@@ -1,9 +1,20 @@
 import sys, os
+from unittest.mock import AsyncMock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import asyncio
 import pytest
 from homedepot.session import HomeDepotSession
+from fastapi.testclient import TestClient
+from main import app
+
+@pytest.fixture(scope="session")
+def client():
+    with patch("main.init_db", new_callable=AsyncMock), \
+         patch("main.hd_session.init", new_callable=AsyncMock), \
+         patch("main.hd_session.close", new_callable=AsyncMock):
+        with TestClient(app) as c:
+            yield c
 
 @pytest.fixture(scope="session")
 def hd_loop():
