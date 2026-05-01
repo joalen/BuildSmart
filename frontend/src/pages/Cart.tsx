@@ -77,6 +77,19 @@ function StockBadge({ product }: { product: CartProduct }) {
     )
 }
 
+const getTaxRate = (zipCode: string): number => {//Section Added by Prajit Alexander
+    const zip = parseInt(zipCode);
+    if (zip >= 73301 && zip <= 88595) {
+        return 0.0825;//Majority local sales tax for home depot locations in Texas
+    } else if (zip >= 90001 && zip <= 96162) {
+        return 0.08832;//Combined average state and local taxes for California
+    } else if (zip >= 32003 && zip <= 34997) {
+        return 0.07033;//Combined average state and local taxes for Florida
+    }
+    return 0;//Only the top 3 states with most home depots for now
+};
+
+
 export default function Cart() {
     const navigate = useNavigate()
     const [cartItems, setCartItems] = useState<CartItem[]>(loadCart)
@@ -124,7 +137,7 @@ export default function Cart() {
                     }
                 })
             )
-    
+
             setNearbyStores(storesWithAvailability)
         } catch (err) {
             console.error('fetchNearbyStores failed', err)
@@ -158,7 +171,7 @@ export default function Cart() {
                 })
             )
 
-            
+
             const oosItems = Object.values(byId).filter(p => !p.in_stock)
 
             const swapResults = await Promise.all(
@@ -219,7 +232,7 @@ export default function Cart() {
         })
 
         clearTimeout((window as any)._qtyRefreshTimer)
-        ;(window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
+            ; (window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
     }
 
     function removeItem(itemId: string) {
@@ -282,6 +295,9 @@ export default function Cart() {
 
     const oos = cartItems.filter(item => !item.product.in_stock && !swappedItems.has(item.product.itemId))
     const subtotal = cartItems.reduce((sum, { product: p, qty }) => sum + (p.price ?? 0) * qty, 0)
+    const taxRate = getTaxRate(zip);
+    const taxAmount = subtotal * taxRate;//Added by Prajit Alexander
+    const totalWithTax = subtotal + taxAmount;//Added by Prajit Alexander
     const inStockCount = cartItems.filter(item => item.product.in_stock).length
 
     useEffect(() => {
@@ -510,13 +526,14 @@ export default function Cart() {
                     <div className="bg-card border rounded-xl p-4">
                         <p className="text-sm font-medium mb-3">Order summary</p>
                         <div className="space-y-2 text-xs text-muted-foreground">
-                            <div className="flex justify-between"><span>Subtotal ({cartItems.length} items)</span><span className="text-foreground font-medium">${subtotal.toFixed(2)}</span></div>
-                            <div className="flex justify-between"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
-                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>subtotal ({cartItems.length} items)</span><span className="text-foreground font-medium">${subtotal.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span>Estimated Sales Tax ({(taxRate * 100).toFixed(2)}%)</span><span className="text-foreground font-medium">${taxAmount.toFixed(2)}</span></div>
+                            <div className="flex justify-between border-t pt-2 mt-1"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
                         </div>
                         <div className="border-t mt-3 pt-3 flex justify-between items-baseline">
                             <span className="text-sm font-medium">Estimated total</span>
-                            <span className="text-base font-bold">${subtotal.toFixed(2)}</span>
+                            <span className="text-base font-bold">${totalWithTax.toFixed(2)}</span>
                         </div>
                         <div className="mt-4 flex flex-col gap-2">
                             <Button variant="outline" className="w-full text-sm h-9">
