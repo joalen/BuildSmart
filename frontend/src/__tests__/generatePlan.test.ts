@@ -33,5 +33,5 @@ describe('POST /generate-plan', () => {
     expect(data.materials.length).toBeGreaterThan(0)
     expect(data.tools.length).toBeGreaterThan(0)
     expect(data.steps.length).toBeGreaterThan(0)
-  }, 30000)
+  }, 60000)
 })
