@@ -19,7 +19,7 @@ from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
 from homedepot.search import build_nav_param, find_swap, search_products
 from homedepot.schema import FilteredSearchRequest, SearchRequest, SearchResponse, RecsRequest, SwapRequest
-from userdata.database import init_db, AsyncSessionLocal, Project, SkuEvent
+from userdata.database import init_db, AsyncSessionLocal, Project, SkuEvent, User
 
 
 logging.basicConfig(
@@ -231,6 +231,35 @@ async def nearby_stores(request: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/auth/login")
+async def login(request: dict):
+    email = request.get("email")
+    password = request.get("password")
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+        user = result.scalar_one_or_none()
+
+        if user:
+            if user.password != password:
+                raise HTTPException(status_code=401, detail="Invalid password")
+        else:
+            user = User(email=email, password=password)
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+        return {
+            "id": user.id,
+            "email": user.email,
+            "loggedIn": True
+        }
+        
 """ 
 Projects endpoint
 """
@@ -238,6 +267,7 @@ Projects endpoint
 async def save_project(request: dict):
     async with AsyncSessionLocal() as session:
         project = Project(
+            user_id=request.get("user_id", "anonymous"),
             input=request["input"],
             plan=json_lib.dumps(request["plan"])
         )
@@ -246,15 +276,19 @@ async def save_project(request: dict):
         return {"id": project.id}
 
 @app.get("/projects")
-async def list_projects():
+async def list_projects(user_id: str = "anonymous"):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(Project).order_by(Project.created_at.desc()).limit(20)
+            select(Project)
+            .where(Project.user_id == user_id)
+            .order_by(Project.created_at.desc())
+            .limit(20)
         )
         projects = result.scalars().all()
         return [
             {
                 "id": p.id,
+                "user_id": p.user_id,
                 "input": p.input,
                 "plan": json_lib.loads(p.plan),
                 "created_at": p.created_at
@@ -273,6 +307,7 @@ async def get_project(project_id: str):
             raise HTTPException(status_code=404, detail="Project not found")
         return {
             "id": p.id,
+            "user_id": p.user_id,
             "input": p.input,
             "plan": json_lib.loads(p.plan),
             "created_at": p.created_at

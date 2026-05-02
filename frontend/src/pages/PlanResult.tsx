@@ -13,8 +13,8 @@ const PREVIEW_COUNT = 3
 const getSessionId = () => {
   let id = sessionStorage.getItem('session_id')
   if (!id) {
-      id = crypto.randomUUID()
-      sessionStorage.setItem('session_id', id)
+    id = crypto.randomUUID()
+    sessionStorage.setItem('session_id', id)
   }
   return id
 }
@@ -26,14 +26,16 @@ export default function PlanResult() {
   const [stepProducts, setStepProducts] = useState<Record<number, any[]>>({})
   const [expanded, setExpanded] = useState(false)
   const visibleSteps = expanded ? steps : steps.slice(0, PREVIEW_COUNT)
-  const savedRef = useRef(false)
+  const productsFetchedRef = useRef(false)
+  const projectSavedRef = useRef(false)
 
   useEffect(() => {
-    if (savedRef.current) return
-    savedRef.current = true
+    if (productsFetchedRef.current) return
+    productsFetchedRef.current = true
 
     const fetchStepProducts = async () => {
       const results: Record<number, any[]> = {}
+
       await Promise.all(
         steps
           .filter(s => s.search_keyword)
@@ -43,12 +45,15 @@ export default function PlanResult() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ keyword: step.search_keyword, storeId: '550' })
             })
+
             const data = await res.json()
+
             results[step.id] = (data.products ?? [])
               .filter(p => p.in_stock)
               .slice(0, 2)
           })
       )
+
       setStepProducts(results)
 
       Object.entries(results).forEach(([_, products]) => {
@@ -66,26 +71,35 @@ export default function PlanResult() {
         })
       })
     }
+
     fetchStepProducts()
   }, [])
 
   useEffect(() => {
+    if (projectSavedRef.current) return
+    projectSavedRef.current = true
+
     const saveProject = async () => {
       try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+
         const res = await fetch('http://localhost:8000/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            user_id: user.id,
             input,
             plan: { overview, materials, tools, steps }
           })
         })
+
         const { id } = await res.json()
         console.log('Project saved:', id)
       } catch (err) {
         console.error('Failed to save project:', err)
       }
     }
+
     saveProject()
   }, [])
 
@@ -224,6 +238,6 @@ export default function PlanResult() {
         </div>
 
       </div>
-    </div >
+    </div>
   )
 }
