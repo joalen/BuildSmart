@@ -33,5 +33,27 @@ describe('POST /generate-plan', () => {
     expect(data.materials.length).toBeGreaterThan(0)
     expect(data.tools.length).toBeGreaterThan(0)
     expect(data.steps.length).toBeGreaterThan(0)
+
+    data.steps.forEach((step: any, i: number) => {
+      expect(step.order ?? i).toBe(i)
+      expect(step.description).toBeTypeOf('string')
+      expect(step.description.length).toBeGreaterThan(0)
+    })
+
+    const isSafetyTask = /electric|wire|outlet|gas|plumb/i.test(input)
+    if (isSafetyTask) {
+      const allText = JSON.stringify(data).toLowerCase()
+      const hasSafetyMention = /safety|shutoff|breaker|turn off|protective|gloves|goggles|ventilat/i.test(allText)
+      expect(hasSafetyMention, 'Safety-sensitive task should mention safety precautions').toBe(true)
+    }
+
+    const materialIds: string[] = data.materials.map((m: any) => m.itemId).filter(Boolean)
+    if (materialIds.length > 0) {
+      const stepText = data.steps.map((s: any) => JSON.stringify(s)).join(' ')
+      const anyStepReferencesSKU = materialIds.some(id => stepText.includes(id))
+      expect(anyStepReferencesSKU, 'At least one step should reference a material SKU').toBe(true)
+    }
+
   }, 60000)
+
 })
