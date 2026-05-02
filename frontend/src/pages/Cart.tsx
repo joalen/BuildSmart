@@ -5,7 +5,7 @@ import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle
 import { useNavigate } from 'react-router-dom'
 import React from 'react'
 
-interface CartProduct {
+export interface CartProduct {
     itemId: string
     brand: string | null
     name: string | null

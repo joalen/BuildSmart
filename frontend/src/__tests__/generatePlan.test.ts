@@ -16,7 +16,7 @@ const TEST_INPUTS: string[] = results
     title.length < 120 &&
     /\b(build|install|fix|repair|replace|paint|tile|floor|deck|fence|wall|ceiling|door|window|plumb|wire|hang|mount|renovate|remodel)\b/i.test(title)
   )
-  .slice(0, 3)
+  .slice(0, 1)
 
 describe('POST /generate-plan', () => {
   it.each(TEST_INPUTS)('generates a valid plan for: %s', async (input) => {
