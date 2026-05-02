@@ -21,7 +21,7 @@ interface SwapMap {
     [itemId: string]: CartProduct
 }
 
-interface CartItem {
+export interface CartItem {
     product: CartProduct
     qty: number
     category: 'material' | 'tool' | 'other'
