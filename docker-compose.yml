@@ -12,6 +12,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
   test:
     build:
       context: ./backend
@@ -19,6 +20,11 @@ services:
     volumes:
       - ./backend:/app
     command: pytest tests/ -v
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/buildsmart
   
   db:
     image: postgres:16

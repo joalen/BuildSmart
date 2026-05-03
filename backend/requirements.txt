@@ -13,4 +13,3 @@ apscheduler
 tenacity
 pyarrow
 pytest
-pytest-asyncio

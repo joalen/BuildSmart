@@ -1,20 +1,48 @@
-import sys, os
-from unittest.mock import AsyncMock, patch
+import asyncio
+import sys
+import os
+
+from homedepot.session import HomeDepotSession
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import asyncio
+import psycopg
 import pytest
-from homedepot.session import HomeDepotSession
+from contextlib import asynccontextmanager
+from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from fastapi.testclient import TestClient
-from main import app
+import userdata.database as db_module
+import main
 
-@pytest.fixture(scope="session")
+DB_URL = "postgresql://postgres:postgres@db:5432/buildsmart"
+ASYNC_DB_URL = "postgresql+asyncpg://postgres:postgres@db:5432/buildsmart"
+
+
+@asynccontextmanager
+async def mock_lifespan(app):
+    yield
+
+
+@pytest.fixture
 def client():
-    with patch("main.init_db", new_callable=AsyncMock), \
-         patch("main.hd_session.init", new_callable=AsyncMock), \
-         patch("main.hd_session.close", new_callable=AsyncMock):
-        with TestClient(app) as c:
-            yield c
+    # NullPool to have no connection reuse across threads
+    engine = create_async_engine(ASYNC_DB_URL, poolclass=NullPool)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    db_module.engine = engine
+    db_module.AsyncSessionLocal = factory
+    main.AsyncSessionLocal = factory
+    main.app.router.lifespan_context = mock_lifespan
+
+    with TestClient(main.app) as c:
+        yield c
+
+
+@pytest.fixture(autouse=True)
+def clean_tables():
+    yield
+    with psycopg.connect(DB_URL, autocommit=True) as conn:
+        conn.execute("TRUNCATE sku_events, sku_aggregates RESTART IDENTITY CASCADE")
 
 @pytest.fixture(scope="session")
 def hd_loop():
