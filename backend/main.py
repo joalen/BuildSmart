@@ -148,7 +148,7 @@ async def get_pro_loader_slots(zip_code: str = Query(...)):
     
     local_tz = timezone(timedelta(hours=-5))
     now = datetime.now(local_tz)
-    closing_time = now.replace(hour=23, minute=0, second=0, microsecond=0)    
+    closing_time = now.replace(hour=18, minute=0, second=0, microsecond=0)    
 
     if now < closing_time:
         #Round up to the next 20-minute interval
