@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import json as json_lib
@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import csv
 import os
 from tenacity import retry, stop_after_attempt, wait_fixed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -142,6 +142,27 @@ async def recommendations(request: RecsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/logistics/slots")
+async def get_pro_loader_slots(zip_code: str = Query(...)):
+    slots = []
+    
+    local_tz = timezone(timedelta(hours=-5))
+    now = datetime.now(local_tz)
+    closing_time = now.replace(hour=18, minute=0, second=0, microsecond=0)    
+
+    if now < closing_time:
+        #Round up to the next 20-minute interval
+        minutes_to_add = 20 - (now.minute % 20)
+        start_time = now + timedelta(minutes=minutes_to_add)
+        start_time = start_time.replace(second=0, microsecond=0)
+
+        current_window = start_time
+        while current_window < closing_time:
+            slots.append(current_window.strftime("%I:%M %p"))
+            current_window += timedelta(minutes=20)
+    
+    return {"zip": zip_code, "slots": slots}
+ 
 @app.get("/homedepot/filters")
 async def get_filters():
     if not hd_session.filter_catalog:

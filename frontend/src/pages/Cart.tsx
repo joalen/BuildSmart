@@ -94,6 +94,8 @@ export default function Cart() {
     const navigate = useNavigate()
     const [proLoaderEnabled, setProLoaderEnabled] = useState(false)
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [isSlotsLoading, setIsSlotsLoading] = useState(false)
     const [cartItems, setCartItems] = useState<CartItem[]>(loadCart)
     const [zip, setZip] = useState('75218')
     const [zipInput, setZipInput] = useState('75218')
@@ -113,6 +115,25 @@ export default function Cart() {
     useEffect(() => {
         cartItemsRef.current = cartItems
     }, [cartItems])
+
+
+    useEffect(() => {
+        if (proLoaderEnabled) {
+            const fetchSlots = async () => {
+                setIsSlotsLoading(true)
+                try {
+                    const res = await fetch(`http://localhost:8000/logistics/slots?zip_code=${zip}`)
+                    const data = await res.json()
+                    setAvailableSlots(data.slots || [])
+                } catch (err) {
+                    console.error("Failed to fetch slots", err)
+                } finally {
+                    setIsSlotsLoading(false)
+                }
+            }
+            fetchSlots()
+        }
+    }, [proLoaderEnabled, zip])
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
         try {
@@ -538,24 +559,32 @@ export default function Cart() {
                      <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${proLoaderEnabled ? 'left-4.5' : 'left-0.5'}`} />
                  </button>
                                 </div>
-                                {/* 20-Minute Window Selection (TC-14)  */}
+                                {/* 20-Minute Window Selection */}
                                 {proLoaderEnabled && (
                                     <div className="bg-orange-50 border border-orange-100 rounded p-2 mt-1">
-                                        <p className="text-[10px] text-orange-700 font-medium mb-1 uppercase tracking-wider">Select 20-min window:</p>
+                                        <p className="text-[10px] text-orange-700 font-medium mb-1 uppercase tracking-wider">
+                                            {isSlotsLoading ? 'Checking availability...' : 'Select 20-min window:'}
+                                        </p>
                                         <div className="grid grid-cols-2 gap-1">
-                                            {['08:00 AM', '08:20 AM', '08:40 AM', '09:00 AM'].map(slot => (
-                                                <button
-                                                    key={slot}
-                                                    onClick={() => setSelectedSlot(slot)}
-                                                    className={`py-1 rounded border text-[10px] font-medium transition-all ${
-                                                        selectedSlot === slot
-                                                            ? 'bg-orange-500 text-white border-orange-600' 
-                                                            : 'bg-white border-orange-200 text-muted-foreground hover:border-orange-300'
+                                            {availableSlots.length > 0 ? (
+                                                availableSlots.map(slot => (
+                                                    <button
+                                                        key={slot}
+                                                        onClick={() => setSelectedSlot(slot)}
+                                                        className={`py-1 rounded border text-[10px] font-medium transition-all ${
+                                                            selectedSlot === slot
+                                                                ? 'bg-orange-500 text-white border-orange-600' 
+                                                                : 'bg-white border-orange-200 text-muted-foreground hover:border-orange-300'
                                                     }`}
                                                 >
                                                     {slot}
                                                 </button>
-                                            ))}
+                                            ))
+                                        ) : !isSlotsLoading && (
+                                            <p className="text-[10px] text-muted-foreground col-span-2 text-center py-1">
+                                                No assistance windows available (store closed at 6:00 PM)
+                                            </p>
+                                        )}
                                         </div>
                                     </div>
                                 )}
