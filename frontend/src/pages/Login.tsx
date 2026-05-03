@@ -9,6 +9,11 @@ export default function Login() {
   const navigate = useNavigate()
 
 const handleSubmit = async () => {
+  if (!email.includes('@')) {
+    alert('Please enter a valid email address.')
+    return
+  }
+
   const response = await fetch('http://localhost:8000/auth/login', {
     method: 'POST',
     headers: {
@@ -26,7 +31,7 @@ const handleSubmit = async () => {
 
   localStorage.setItem('user', JSON.stringify(user))
   navigate('/plan')
-}   
+}
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12">

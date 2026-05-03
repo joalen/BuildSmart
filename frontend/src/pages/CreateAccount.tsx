@@ -9,19 +9,18 @@ export default function CreateAccount() {
   const navigate = useNavigate()
 
   const handleSubmit = async () => {
-    const response = await fetch('http://localhost:8000/auth/register', {
+    if (!email.includes('@')) {
+      alert('Please enter a valid email address.')
+      return
+    }
+
+    const response = await fetch('http://localhost:8000/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
     })
-
-    if (response.status === 409) {
-      alert('An account with that email or username already exists. Please log in instead.')
-      navigate('/')
-      return
-    }
 
     if (!response.ok) {
       alert('Could not create account')
@@ -53,7 +52,7 @@ export default function CreateAccount() {
                 passwordRef.current?.focus()
               }
             }}
-            placeholder="Email or username"
+            placeholder="Email"
             className="w-full rounded-md border bg-white px-3 py-2 text-sm"
           />
 
