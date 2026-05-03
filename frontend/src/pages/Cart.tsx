@@ -92,6 +92,10 @@ const getTaxRate = (zipCode: string): number => {//Section Added by Prajit Alexa
 
 export default function Cart() {
     const navigate = useNavigate()
+    const [proLoaderEnabled, setProLoaderEnabled] = useState(false)
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [isSlotsLoading, setIsSlotsLoading] = useState(false)
     const [cartItems, setCartItems] = useState<CartItem[]>(loadCart)
     const [zip, setZip] = useState('75218')
     const [zipInput, setZipInput] = useState('75218')
@@ -101,10 +105,35 @@ export default function Cart() {
     const [loading, setLoading] = useState(false)
     const [swappedItems, setSwappedItems] = useState<Set<string>>(new Set())
     const cartItemsRef = useRef(cartItems)
+    const oos = cartItems.filter(item => !item.product.in_stock && !swappedItems.has(item.product.itemId))
+    const subtotal = cartItems.reduce((sum, { product: p, qty }) => sum + (p.price ?? 0) * qty, 0)
+    const taxRate = getTaxRate(zip);
+    const taxAmount = subtotal * taxRate;//Added by Prajit Alexander
+    const totalWithTax = subtotal + taxAmount;//Added by Prajit Alexander
+    const inStockCount = cartItems.filter(item => item.product.in_stock).length
 
     useEffect(() => {
         cartItemsRef.current = cartItems
     }, [cartItems])
+
+
+    useEffect(() => {
+        if (proLoaderEnabled) {
+            const fetchSlots = async () => {
+                setIsSlotsLoading(true)
+                try {
+                    const res = await fetch(`http://localhost:8000/logistics/slots?zip_code=${zip}`)
+                    const data = await res.json()
+                    setAvailableSlots(data.slots || [])
+                } catch (err) {
+                    console.error("Failed to fetch slots", err)
+                } finally {
+                    setIsSlotsLoading(false)
+                }
+            }
+            fetchSlots()
+        }
+    }, [proLoaderEnabled, zip])
 
     async function fetchNearbyStores(targetZip: string, products: CartProduct[]) {
         try {
@@ -292,13 +321,6 @@ export default function Cart() {
         a.download = 'cart.csv'
         a.click()
     }
-
-    const oos = cartItems.filter(item => !item.product.in_stock && !swappedItems.has(item.product.itemId))
-    const subtotal = cartItems.reduce((sum, { product: p, qty }) => sum + (p.price ?? 0) * qty, 0)
-    const taxRate = getTaxRate(zip);
-    const taxAmount = subtotal * taxRate;//Added by Prajit Alexander
-    const totalWithTax = subtotal + taxAmount;//Added by Prajit Alexander
-    const inStockCount = cartItems.filter(item => item.product.in_stock).length
 
     useEffect(() => {
         if (cartItems.length > 0) {
@@ -528,8 +550,48 @@ export default function Cart() {
                         <div className="space-y-2 text-xs text-muted-foreground">
                             <div className="flex justify-between"><span>subtotal ({cartItems.length} items)</span><span className="text-foreground font-medium">${subtotal.toFixed(2)}</span></div>
                             <div className="flex justify-between"><span>Estimated Sales Tax ({(taxRate * 100).toFixed(2)}%)</span><span className="text-foreground font-medium">${taxAmount.toFixed(2)}</span></div>
+                            <div className="flex flex-col gap-2 border-t pt-2 mt-1">
+                                <div className="flex justify-between items-center"><span>Pro-Loader assistance</span>
+                 <button
+                     onClick={() => setProLoaderEnabled(!proLoaderEnabled)}
+                     className={`w-8 h-4 rounded-full transition-colors relative ${proLoaderEnabled ? 'bg-orange-500' : 'bg-muted'}`}
+                 >
+                     <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${proLoaderEnabled ? 'left-4.5' : 'left-0.5'}`} />
+                 </button>
+                                </div>
+                                {/* 20-Minute Window Selection */}
+                                {proLoaderEnabled && (
+                                    <div className="bg-orange-50 border border-orange-100 rounded p-2 mt-1">
+                                        <p className="text-[10px] text-orange-700 font-medium mb-1 uppercase tracking-wider">
+                                            {isSlotsLoading ? 'Checking availability...' : 'Select 20-min window:'}
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-1">
+                                            {availableSlots.length > 0 ? (
+                                                availableSlots.map(slot => (
+                                                    <button
+                                                        key={slot}
+                                                        onClick={() => setSelectedSlot(slot)}
+                                                        className={`py-1 rounded border text-[10px] font-medium transition-all ${
+                                                            selectedSlot === slot
+                                                                ? 'bg-orange-500 text-white border-orange-600' 
+                                                                : 'bg-white border-orange-200 text-muted-foreground hover:border-orange-300'
+                                                    }`}
+                                                >
+                                                    {slot}
+                                                </button>
+                                            ))
+                                        ) : !isSlotsLoading && (
+                                            <p className="text-[10px] text-muted-foreground col-span-2 text-center py-1">
+                                                No assistance windows available (store closed at 6:00 PM)
+                                            </p>
+                                        )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>         
                             <div className="flex justify-between border-t pt-2 mt-1"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
-                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>In stock at store</span><span className="text-green-700 font-medium">{inStockCount} items</span></div>
+                            <div className="flex justify-between"><span>Out of stock</span><span className="text-red-600 font-medium">{cartItems.length - inStockCount} items</span></div>
                         </div>
                         <div className="border-t mt-3 pt-3 flex justify-between items-baseline">
                             <span className="text-sm font-medium">Estimated total</span>

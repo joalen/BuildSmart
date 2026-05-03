@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import json as json_lib
@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import csv
 import os
 from tenacity import retry, stop_after_attempt, wait_fixed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -19,7 +19,7 @@ from homedepot.recommendations import get_recs
 from homedepot.session import HomeDepotSession
 from homedepot.search import build_nav_param, find_swap, search_products
 from homedepot.schema import FilteredSearchRequest, SearchRequest, SearchResponse, RecsRequest, SwapRequest
-from userdata.database import init_db, AsyncSessionLocal, Project, SkuEvent
+from userdata.database import init_db, AsyncSessionLocal, Project, SkuEvent, User
 
 
 logging.basicConfig(
@@ -142,6 +142,27 @@ async def recommendations(request: RecsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/logistics/slots")
+async def get_pro_loader_slots(zip_code: str = Query(...)):
+    slots = []
+    
+    local_tz = timezone(timedelta(hours=-5))
+    now = datetime.now(local_tz)
+    closing_time = now.replace(hour=18, minute=0, second=0, microsecond=0)    
+
+    if now < closing_time:
+        #Round up to the next 20-minute interval
+        minutes_to_add = 20 - (now.minute % 20)
+        start_time = now + timedelta(minutes=minutes_to_add)
+        start_time = start_time.replace(second=0, microsecond=0)
+
+        current_window = start_time
+        while current_window < closing_time:
+            slots.append(current_window.strftime("%I:%M %p"))
+            current_window += timedelta(minutes=20)
+    
+    return {"zip": zip_code, "slots": slots}
+ 
 @app.get("/homedepot/filters")
 async def get_filters():
     if not hd_session.filter_catalog:
@@ -231,6 +252,35 @@ async def nearby_stores(request: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/auth/login")
+async def login(request: dict):
+    email = request.get("email")
+    password = request.get("password")
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+        user = result.scalar_one_or_none()
+
+        if user:
+            if user.password != password:
+                raise HTTPException(status_code=401, detail="Invalid password")
+        else:
+            user = User(email=email, password=password)
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+        return {
+            "id": user.id,
+            "email": user.email,
+            "loggedIn": True
+        }
+        
 """ 
 Projects endpoint
 """
@@ -238,6 +288,7 @@ Projects endpoint
 async def save_project(request: dict):
     async with AsyncSessionLocal() as session:
         project = Project(
+            user_id=request.get("user_id", "anonymous"),
             input=request["input"],
             plan=json_lib.dumps(request["plan"])
         )
@@ -246,15 +297,19 @@ async def save_project(request: dict):
         return {"id": project.id}
 
 @app.get("/projects")
-async def list_projects():
+async def list_projects(user_id: str = "anonymous"):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(Project).order_by(Project.created_at.desc()).limit(20)
+            select(Project)
+            .where(Project.user_id == user_id)
+            .order_by(Project.created_at.desc())
+            .limit(20)
         )
         projects = result.scalars().all()
         return [
             {
                 "id": p.id,
+                "user_id": p.user_id,
                 "input": p.input,
                 "plan": json_lib.loads(p.plan),
                 "created_at": p.created_at
@@ -273,6 +328,7 @@ async def get_project(project_id: str):
             raise HTTPException(status_code=404, detail="Project not found")
         return {
             "id": p.id,
+            "user_id": p.user_id,
             "input": p.input,
             "plan": json_lib.loads(p.plan),
             "created_at": p.created_at
