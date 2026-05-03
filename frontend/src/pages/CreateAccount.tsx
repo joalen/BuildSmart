@@ -2,39 +2,45 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
-export default function Login() {
+export default function CreateAccount() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const passwordRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
-const handleSubmit = async () => {
-  const response = await fetch('http://localhost:8000/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  })
+  const handleSubmit = async () => {
+    const response = await fetch('http://localhost:8000/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    })
 
-  if (!response.ok) {
-    alert('Account not found or invalid password')
-    return
+    if (response.status === 409) {
+      alert('An account with that email or username already exists. Please log in instead.')
+      navigate('/')
+      return
+    }
+
+    if (!response.ok) {
+      alert('Could not create account')
+      return
+    }
+
+    const user = await response.json()
+
+    localStorage.setItem('user', JSON.stringify(user))
+    navigate('/plan')
   }
-
-  const user = await response.json()
-
-  localStorage.setItem('user', JSON.stringify(user))
-  navigate('/plan')
-}   
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12">
       <div className="w-full max-w-md space-y-6 rounded-xl border bg-card p-6 shadow-sm">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">BuildSmart</h1>
+          <h1 className="text-4xl font-bold">Create Account</h1>
           <p className="text-muted-foreground text-sm">
-            Log in to start planning your project.
+            Create an account to save your projects.
           </p>
         </div>
 
@@ -47,7 +53,7 @@ const handleSubmit = async () => {
                 passwordRef.current?.focus()
               }
             }}
-            placeholder="Email"
+            placeholder="Email or username"
             className="w-full rounded-md border bg-white px-3 py-2 text-sm"
           />
 
@@ -66,22 +72,16 @@ const handleSubmit = async () => {
           />
 
           <Button className="w-full" onClick={handleSubmit}>
-            Log In
+            Create Account
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link to="/create-account" className="text-primary hover:underline">
-              Create one
-            </Link>
-          </p>
         </div>
 
-            
-        {/* 
         <p className="text-center text-xs text-muted-foreground">
-        Temporary demo login. Any input will continue.
+          Already have an account?{' '}
+          <Link to="/" className="text-primary hover:underline">
+            Log in
+          </Link>
         </p>
-        */}
       </div>
     </div>
   )

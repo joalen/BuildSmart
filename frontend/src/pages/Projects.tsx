@@ -39,7 +39,10 @@ export default function Projects() {
             className="border rounded-lg p-4 cursor-pointer hover:bg-muted"
             onClick={() =>
               navigate('/plan/result', {
-                state: p.plan,
+                state: {
+                  ...p.plan,
+                  input: p.input,
+                },
               })
             }
           >
