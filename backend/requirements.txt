@@ -12,3 +12,4 @@ asyncpg
 apscheduler
 tenacity
 pyarrow
+pytest

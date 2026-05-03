@@ -5,7 +5,7 @@ import { MapPin, RefreshCw, Download, ArrowRightLeft, Minus, Plus, AlertTriangle
 import { useNavigate } from 'react-router-dom'
 import React from 'react'
 
-interface CartProduct {
+export interface CartProduct {
     itemId: string
     brand: string | null
     name: string | null
@@ -21,7 +21,7 @@ interface SwapMap {
     [itemId: string]: CartProduct
 }
 
-interface CartItem {
+export interface CartItem {
     product: CartProduct
     qty: number
     category: 'material' | 'tool' | 'other'
@@ -166,7 +166,7 @@ export default function Cart() {
                     }
                 })
             )
-    
+
             setNearbyStores(storesWithAvailability)
         } catch (err) {
             console.error('fetchNearbyStores failed', err)
@@ -200,7 +200,7 @@ export default function Cart() {
                 })
             )
 
-            
+
             const oosItems = Object.values(byId).filter(p => !p.in_stock)
 
             const swapResults = await Promise.all(
@@ -261,7 +261,7 @@ export default function Cart() {
         })
 
         clearTimeout((window as any)._qtyRefreshTimer)
-        ;(window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
+            ; (window as any)._qtyRefreshTimer = setTimeout(() => refreshInventory(zip), 800)
     }
 
     function removeItem(itemId: string) {
