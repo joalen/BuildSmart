@@ -1,5 +1,3 @@
-_Note: we need to update this with our actual Software Engineering Document. For now, I'm just leaving instructions for how this project works._
-
 ## How to Deploy
 1. Run the following commands `curl -fsSL https://raw.githubusercontent.com/joalen/buildsmart/master/install.sh | bash` (for macOS & Linux) `irm https://raw.githubusercontent.com/joalen/buildsmart/master/install.ps1 | iex` (for Windows)
 2. If you are a collaborator, you should've received a .env file that is needed to run this software. Make sure to put this environment file inside the root of backend folder (just backend/ folder, not in any sub-folders)
