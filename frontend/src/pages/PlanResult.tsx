@@ -7,6 +7,7 @@ interface Material { id: number; name: string; quantity: string; unit: string }
 interface Tool { id: number; name: string }
 interface Step { id: number; title: string; description: string; search_keyword: string }
 interface PlanData { overview: string; materials: Material[]; tools: Tool[]; steps: Step[]; input: string }
+interface Product { itemId: string; name: string; price: number; in_stock: boolean }
 
 const PREVIEW_COUNT = 3
 
@@ -37,21 +38,24 @@ export default function PlanResult() {
       const results: Record<number, any[]> = {}
 
       await Promise.all(
-        steps
-          .filter(s => s.search_keyword)
-          .map(async (step) => {
+        steps.filter(s => s.search_keyword).map(async (step) => {
+          try {
             const res = await fetch('http://localhost:8000/homedepot/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ keyword: step.search_keyword, storeId: '550' })
+              body: JSON.stringify({ keyword: step.search_keyword, storeId: '0550' })
             })
-
+            if (!res.ok) return
             const data = await res.json()
 
             results[step.id] = (data.products ?? [])
-              .filter(p => p.in_stock)
+              .filter((p: Product) => p.in_stock)
               .slice(0, 2)
-          })
+
+          } catch (err) {
+            console.warn(`Failed to fetch products for step ${step.id}:`, err)
+          }
+        })
       )
 
       setStepProducts(results)
