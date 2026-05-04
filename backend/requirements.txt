@@ -13,3 +13,4 @@ apscheduler
 tenacity
 pyarrow
 pytest
+psycopg2-binary

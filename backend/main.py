@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import json as json_lib
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import csv
@@ -116,7 +118,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", os.getenv("FRONTEND_URL", "")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -408,3 +410,11 @@ async def health():
         "session_ready": hd_session.payload_template is not None,
         "session_error": session_error,
     }
+
+if os.path.exists("static"):
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+    app.mount("/favicon", StaticFiles(directory="static/favicon"), name="favicon")
+    
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        return FileResponse("static/index.html")

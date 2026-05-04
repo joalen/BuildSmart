@@ -7,6 +7,7 @@ interface Material { id: number; name: string; quantity: string; unit: string }
 interface Tool { id: number; name: string }
 interface Step { id: number; title: string; description: string; search_keyword: string }
 interface PlanData { overview: string; materials: Material[]; tools: Tool[]; steps: Step[]; input: string }
+interface Product { itemId: string; name: string; price: number; in_stock: boolean }
 
 const PREVIEW_COUNT = 3
 
@@ -49,7 +50,7 @@ export default function PlanResult() {
             const data = await res.json()
 
             results[step.id] = (data.products ?? [])
-              .filter(p => p.in_stock)
+              .filter((p: Product) => p.in_stock)
               .slice(0, 2)
           })
       )
