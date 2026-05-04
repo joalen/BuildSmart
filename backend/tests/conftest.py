@@ -20,6 +20,7 @@ ASYNC_DB_URL = "postgresql+asyncpg://postgres:postgres@db:5432/buildsmart"
 
 @asynccontextmanager
 async def mock_lifespan(app):
+    await db_module.init_db()
     yield
 
 
