@@ -39,6 +39,7 @@ describe('POST /generate-plan', () => {
       body: JSON.stringify({ input })
     })
 
+    console.log(await res.text())
     expect(res.ok).toBe(true)
     const data = await res.json()
 
