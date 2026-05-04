@@ -8,6 +8,8 @@ services:
     environment:
       - DISPLAY=:99
       - PYTHONUNBUFFERED=1
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
     restart: unless-stopped
     depends_on:
       db:
