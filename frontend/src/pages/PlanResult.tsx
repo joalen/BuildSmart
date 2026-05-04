@@ -38,21 +38,24 @@ export default function PlanResult() {
       const results: Record<number, any[]> = {}
 
       await Promise.all(
-        steps
-          .filter(s => s.search_keyword)
-          .map(async (step) => {
+        steps.filter(s => s.search_keyword).map(async (step) => {
+          try {
             const res = await fetch('http://localhost:8000/homedepot/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ keyword: step.search_keyword, storeId: '550' })
+              body: JSON.stringify({ keyword: step.search_keyword, storeId: '0550' })
             })
-
+            if (!res.ok) return
             const data = await res.json()
 
             results[step.id] = (data.products ?? [])
               .filter((p: Product) => p.in_stock)
               .slice(0, 2)
-          })
+
+          } catch (err) {
+            console.warn(`Failed to fetch products for step ${step.id}:`, err)
+          }
+        })
       )
 
       setStepProducts(results)

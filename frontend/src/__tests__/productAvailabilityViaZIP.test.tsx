@@ -37,7 +37,7 @@ describe('Zip code updates inventory availability display', () => {
     it('shows in-stock badge with unit count and store name after zip update', async () => {
         vi.stubGlobal('fetch', vi.fn(async (url: string) => {
             if (url.includes('nearby-stores'))
-                return { ok: true, json: async () => [{ storeId: '550', storeName: 'Skillman', distance: '3.3 mi', postalCode: '75206' }] }
+                return { ok: true, json: async () => [{ storeId: '0550', storeName: 'Skillman', distance: '3.3 mi', postalCode: '75206' }] }
             if (url.includes('/item'))
                 return { ok: true, json: async () => ({ ...mockOriginal, itemId: 'IN001', in_stock: true, store_name: 'Skillman', quantity: 42 }) }
             if (url.includes('search/with-swaps'))

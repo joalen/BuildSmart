@@ -185,7 +185,7 @@ export default function Cart() {
                 body: JSON.stringify({ zipCode: targetZip })
             })
             const stores = await storesRes.json()
-            const resolvedStoreId = stores[0]?.storeId ?? '550'
+            const resolvedStoreId = stores[0]?.storeId ?? '0550'
 
             await Promise.all(
                 currentItems.map(async ({ product: p }) => {
@@ -210,7 +210,7 @@ export default function Cart() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             keyword: p.name,
-                            storeId: '550',
+                            storeId: '0550',
                             zipCode: targetZip,
                         })
                     })
@@ -439,7 +439,7 @@ export default function Cart() {
                                             </td>
                                         </tr>
                                         {grouped[cat].map(({ product: p, qty }) => (
-                                            <>
+                                            <React.Fragment key={p.itemId}>
                                                 <tr
                                                     key={p.itemId}
                                                     className={`border-b transition-colors ${!p.in_stock ? 'bg-red-50/40' : 'hover:bg-muted/30'}`}
@@ -532,7 +532,7 @@ export default function Cart() {
                                                         </td>
                                                     </tr>
                                                 )}
-                                            </>
+                                            </React.Fragment>
                                         ))}
                                     </React.Fragment>
                                 ))

@@ -174,7 +174,7 @@ async def get_filters():
 @app.post("/homedepot/item")
 async def get_item(request: dict):
     item_id = request.get("itemId")
-    store_id = request.get("storeId", "550")
+    store_id = request.get("storeId", "0550")
     qty = request.get("qty", 1)
     result = await search_products(
         hd_session,
@@ -414,7 +414,7 @@ async def health():
 if os.path.exists("static"):
     app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
     app.mount("/favicon", StaticFiles(directory="static/favicon"), name="favicon")
-    
+
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         return FileResponse("static/index.html")

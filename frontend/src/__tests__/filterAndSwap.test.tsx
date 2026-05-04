@@ -20,7 +20,7 @@ beforeEach(() => {
 
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
         if (url.includes('nearby-stores'))
-            return { ok: true, json: async () => [{ storeId: '550', storeName: 'Store A', distance: '1.2 mi', postalCode: '75218' }] }
+            return { ok: true, json: async () => [{ storeId: '0550', storeName: 'Store A', distance: '1.2 mi', postalCode: '75218' }] }
 
         if (url.includes('search/with-swaps'))
             return { ok: true, json: async () => ({ products: [mockSwap] }) }

@@ -6,6 +6,455 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+SEARCH_QUERY = """
+query searchModel(
+  $startIndex: Int
+  $pageSize: Int
+  $orderBy: ProductSort
+  $filter: ProductFilter
+  $storeId: String
+  $zipCode: String
+  $skipFavoriteCount: Boolean = false
+  $skipKPF: Boolean = false
+  $skipSpecificationGroup: Boolean = false
+  $skipSubscribeAndSave: Boolean = false
+  $keyword: String
+  $navParam: String
+  $storefilter: StoreFilter = ALL
+  $itemIds: [String]
+  $channel: Channel = DESKTOP
+  $additionalSearchParams: AdditionalParams
+  $loyaltyMembershipInput: LoyaltyMembershipInput
+) {
+  searchModel(
+    keyword: $keyword
+    navParam: $navParam
+    storefilter: $storefilter
+    storeId: $storeId
+    itemIds: $itemIds
+    channel: $channel
+    additionalSearchParams: $additionalSearchParams
+    loyaltyMembershipInput: $loyaltyMembershipInput
+  ) {
+    metadata {
+      hasPLPBanner
+      categoryID
+      analytics {
+        semanticTokens
+        dynamicLCA
+        __typename
+      }
+      canonicalUrl
+      searchRedirect
+      clearAllRefinementsURL
+      contentType
+      h1Tag
+      isStoreDisplay
+      productCount {
+        inStore
+        __typename
+      }
+      stores {
+        storeId
+        storeName
+        address {
+          postalCode
+          __typename
+        }
+        nearByStores {
+          storeId
+          storeName
+          distance
+          address {
+            postalCode
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    products(
+      startIndex: $startIndex
+      pageSize: $pageSize
+      orderBy: $orderBy
+      filter: $filter
+    ) {
+      identifiers {
+        storeSkuNumber
+        canonicalUrl
+        brandName
+        itemId
+        productLabel
+        productType
+        specialOrderSku
+        modelNumber
+        parentId
+        isSuperSku
+        sampleId
+        __typename
+      }
+      itemId
+      dataSources
+      media {
+        images {
+          url
+          type
+          subType
+          sizes
+          __typename
+        }
+        __typename
+      }
+      pricing(storeId: $storeId) {
+        value
+        alternatePriceDisplay
+        alternate {
+          bulk {
+            pricePerUnit
+            thresholdQuantity
+            value
+            __typename
+          }
+          unit {
+            caseUnitOfMeasure
+            unitsOriginalPrice
+            unitsPerCase
+            value
+            __typename
+          }
+          __typename
+        }
+        original
+        mapAboveOriginalPrice
+        message
+        preferredPriceFlag
+        promotion {
+          type
+          description {
+            shortDesc
+            longDesc
+            __typename
+          }
+          dollarOff
+          percentageOff
+          promotionTag
+          savingsCenter
+          savingsCenterPromos
+          specialBuySavings
+          specialBuyDollarOff
+          specialBuyPercentageOff
+          dates {
+            start
+            end
+            __typename
+          }
+          __typename
+        }
+        specialBuy
+        unitOfMeasure
+        __typename
+      }
+      reviews {
+        ratingsReviews {
+          averageRating
+          totalReviews
+          __typename
+        }
+        __typename
+      }
+      info {
+        swatches {
+          isSelected
+          itemId
+          label
+          swatchImgUrl
+          url
+          value
+          __typename
+        }
+        hidePrice
+        ecoRebate
+        quantityLimit
+        categoryHierarchy
+        sskMin
+        sskMax
+        unitOfMeasureCoverage
+        wasMaxPriceRange
+        wasMinPriceRange
+        productSubType {
+          name
+          link
+          __typename
+        }
+        customerSignal {
+          previouslyPurchased
+          __typename
+        }
+        isBuryProduct
+        isGenericProduct
+        returnable
+        isLiveGoodsProduct
+        isSponsored
+        sponsoredMetadata {
+          campaignId
+          placementId
+          slotId
+          sponsoredId
+          trackSource
+          __typename
+        }
+        globalCustomConfigurator {
+          customExperience
+          __typename
+        }
+        augmentedReality
+        sponsoredBeacon {
+          onClickBeacon
+          onViewBeacon
+          onClickBeacons
+          onViewBeacons
+          __typename
+        }
+        hasSubscription
+        samplesAvailable
+        productDepartmentId
+        productDepartment
+        totalNumberOfOptions
+        paintBrand
+        dotComColorEligible
+        classNumber
+        __typename
+      }
+      details {
+        installation {
+          serviceType
+          __typename
+        }
+        collection {
+          name
+          url
+          collectionId
+          __typename
+        }
+        highlights
+        __typename
+      }
+      fulfillment(storeId: $storeId, zipCode: $zipCode) {
+        anchorStoreStatus
+        anchorStoreStatusType
+        backordered
+        backorderedShipDate
+        bossExcludedShipStates
+        excludedShipStates
+        seasonStatusEligible
+        fulfillmentOptions {
+          type
+          fulfillable
+          services {
+            deliveryTimeline
+            deliveryDates {
+              startDate
+              endDate
+              __typename
+            }
+            deliveryCharge
+            dynamicEta {
+              hours
+              minutes
+              __typename
+            }
+            hasFreeShipping
+            freeDeliveryThreshold
+            locations {
+              curbsidePickupFlag
+              isBuyInStoreCheckNearBy
+              distance
+              inventory {
+                isOutOfStock
+                isInStock
+                isLimitedQuantity
+                isUnavailable
+                quantity
+                maxAllowedBopisQty
+                minAllowedBopisQty
+                __typename
+              }
+              isAnchor
+              locationId
+              state
+              storeName
+              storePhone
+              type
+              __typename
+            }
+            type
+            totalCharge
+            __typename
+          }
+          __typename
+        }
+        onlineStoreStatus
+        onlineStoreStatusType
+        __typename
+      }
+      availabilityType {
+        type
+        discontinued
+        buyable
+        status
+        __typename
+      }
+      badges(storeId: $storeId) {
+        name
+        label
+        __typename
+      }
+      dataSource
+      favoriteDetail @skip(if: $skipFavoriteCount) {
+        count
+        __typename
+      }
+      keyProductFeatures @skip(if: $skipKPF) {
+        keyProductFeaturesItems {
+          features {
+            name
+            refinementId
+            refinementUrl
+            value
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      specificationGroup @skip(if: $skipSpecificationGroup) {
+        specifications {
+          specName
+          specValue
+          __typename
+        }
+        specTitle
+        __typename
+      }
+      subscription @skip(if: $skipSubscribeAndSave) {
+        defaultfrequency
+        discountPercentage
+        subscriptionEnabled
+        __typename
+      }
+      sizeAndFitDetail {
+        attributeGroups {
+          attributes {
+            attributeName
+            dimensions
+            __typename
+          }
+          dimensionLabel
+          productType
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    taxonomy {
+      breadCrumbs {
+        browseUrl
+        creativeIconUrl
+        deselectUrl
+        dimensionName
+        label
+        refinementKey
+        url
+        dimensionId
+        __typename
+      }
+      brandLinkUrl
+      __typename
+    }
+    searchReport {
+      keyword
+      totalProducts
+      didYouMean
+      correctedKeyword
+      pageSize
+      searchUrl
+      sortBy
+      sortOrder
+      startIndex
+      __typename
+    }
+    id
+    relatedResults {
+      universalSearch {
+        title
+        __typename
+      }
+      relatedServices {
+        label
+        __typename
+      }
+      visualNavs {
+        label
+        imageId
+        webUrl
+        categoryId
+        imageURL
+        __typename
+      }
+      visualNavContainsEvents
+      relatedKeywords {
+        keyword
+        __typename
+      }
+      __typename
+    }
+    dimensions {
+      label
+      refinements {
+        refinementKey
+        label
+        recordCount
+        selected
+        imgUrl
+        url
+        nestedRefinements {
+          label
+          url
+          recordCount
+          refinementKey
+          __typename
+        }
+        __typename
+      }
+      collapse
+      dimensionId
+      isVisualNav
+      isVisualDimension
+      isNumericFilter
+      isColorSwatch
+      nestedRefinementsLimit
+      visualNavSequence
+      __typename
+    }
+    appliedDimensions {
+      label
+      refinements {
+        label
+        refinementKey
+        url
+        __typename
+      }
+      isNumericFilter
+      __typename
+    }
+    __typename
+  }
+}
+"""
+
 def build_nav_param(base_nav: str, selected_keys: list[str]) -> str:
     """
     base_nav: e.g. "N-5yc1vZc8d3" (category)
@@ -84,6 +533,7 @@ async def search_products(
     payload["variables"]["startIndex"] = 0
     payload["variables"]["pageSize"] = request.pageSize
     payload["variables"]["additionalSearchParams"]["deliveryZip"] = request.zipCode or "75150"
+    payload["query"] = SEARCH_QUERY
 
     # Fire from inside Brave — bypasses Akamai completely
     result = await session.page.evaluate("""
