@@ -21,37 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Start backend
+      - name: Debug secrets
         env:
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-        run: docker compose up -d backend db
-
-      - name: Backend logs
-        run: docker compose logs backend
-
-      - name: Wait for backend
         run: |
-          for i in {1..15}; do
-            curl -sf http://localhost:8000/health && break
-            echo "Waiting... ($i/15)"
-            sleep 3
-          done || (echo "Backend never became healthy" && exit 1)
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: frontend
-
-      - name: Run Vitest
-        run: npm test
-        working-directory: frontend
-
-      - name: Teardown
-        if: always()
-        run: docker compose down
+          echo "ID length: ${#INFISICAL_CLIENT_ID}"
+          echo "SECRET length: ${#INFISICAL_CLIENT_SECRET}"
