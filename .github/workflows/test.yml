@@ -22,6 +22,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start backend
+        env:
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
         run: docker compose up -d backend db
 
       - name: Wait for backend
