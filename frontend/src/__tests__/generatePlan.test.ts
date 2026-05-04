@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 
 const FALLBACK_INPUTS = [
   'How do I install a ceiling fan?',
