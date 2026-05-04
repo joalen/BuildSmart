@@ -27,6 +27,9 @@ jobs:
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
         run: docker compose up -d backend db
 
+      - name: Backend logs
+        run: docker compose logs backend
+
       - name: Wait for backend
         run: |
           for i in {1..15}; do
