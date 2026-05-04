@@ -148,7 +148,15 @@ async def recommendations(request: RecsRequest):
 async def get_pro_loader_slots(zip_code: str = Query(...)):
     slots = []
     
-    local_tz = timezone(timedelta(hours=-5))
+    z = int(zip_code)
+    
+    if 73301 <= z <= 88595: 
+        local_tz = timezone(timedelta(hours=-5))
+    elif 90001 <= z <= 96162:
+        local_tz = timezone(timedelta(hours=-7))
+    elif 32003 <= z <= 34997:
+        local_tz = timezone(timedelta(hours=-4))
+
     now = datetime.now(local_tz)
     closing_time = now.replace(hour=18, minute=0, second=0, microsecond=0)    
 
