@@ -1,60 +1,96 @@
-## How to Deploy
-1. Run the following commands `curl -fsSL https://raw.githubusercontent.com/joalen/buildsmart/master/install.sh | bash` (for macOS & Linux) `irm https://raw.githubusercontent.com/joalen/buildsmart/master/install.ps1 | iex` (for Windows)
-2. If you are a collaborator, you should've received a .env file that is needed to run this software. Make sure to put this environment file inside the root of backend folder (just backend/ folder, not in any sub-folders)
-3. To check out the development version of BuildSmart, run `npm run dev` in the frontend/ folder and that should spin up the Vite build process + the Docker container responsible for serving the backend logic. 
-4. Wait for VITE to show that it is ready in addition to the Container also starting (if first time, you'll need to wait a bit for it to completely install and build)
-5. Backend indicates ready if it shows Uvicorn running on localhost (you can press Ctrl + C to stop the entire workflow)
+# BuildSmart
+An AI-powered home improvement planning tool that turns a plain-language project description into a fully itemized, shoppable Home Depot cart. This project is complete with real-time pricing, live inventory checks, and step-by-step guidance.
 
-## Project Structure
-To ensure that we follow best practices for Git related things, create a branch from master and give an appropriate name for what you want to work on. Once you feel ready, make sure to create a pull request and request someone to review to make sure your logic is sound along with other team members. 
+## What it does
+You describe a project in plain English ("I want to tile a 12x10 bathroom floor"), and BuildSmart:
+- Generates a structured, step-by-step project plan using OpenAI
+- Maps every material to a real Home Depot SKU with live pricing
+- Checks real-time stock at your nearest store
+- Surfaces attach-rate recommendations so you don't forget anything
+- Produces an itemized cart you can export as a CSV
 
-### Frontend
-All frontend related work is within the frontend folder and is formatted in this structure: 
+## Tech Stack
+| Layer | Technology |
+|---|---|
+| Frontend | TypeScript, React, Vite, shadcn/ui |
+| Backend | Python, FastAPI, Uvicorn |
+| AI / NLP | OpenAI API |
+| Product Data | Headless browser scraping (Home Depot) |
+| Infrastructure | Docker, docker-compose |
+
+## Getting Started
+**Prerequisites**:
+- Docker Desktop
+- Node.js + npm
+- A .env file with the required API keys (see below)
+
+### Installation Steps
+- macOS / Linux: `curl -fsSL https://raw.githubusercontent.com/joalen/buildsmart/master/install.sh | bash`
+- Windows (PowerShell): `irm https://raw.githubusercontent.com/joalen/buildsmart/master/install.ps1 | iex`
+
+### Running as Development Mode 
+1. Place your .env file inside the backend/ folder
+2. Start the dev server as `npm run dev`
+
+^ This spins up the Vite frontend and the Docker-managed backend simultaneously. Wait for both Vite and Uvicorn to report ready before using the app.
+
+### Project Structure
 ```sh
-.
-├── public
-│   └── assets
-├── scripts
-└── src
-    ├── components
-    │   └── ui
-    ├── hooks
-    ├── lib
-    └── pages
+BuildSmart/
+├── frontend/ # react and typescript UI
+│   └── src/
+│       ├── components/ # shadcn + custom UI components
+│       ├── hooks/ # State and loading hooks
+│       └── pages/ # Route-level page components
+├── backend/
+│   ├── projectplanner/ # OpenAI wrapper — NLP -> structured plan
+│   └── homedepot/ # Headless browser -> live SKU/pricing data
+├── Dockerfile
+├── docker-compose.yml
+└── install.sh / install.ps1
 ```
 
-- assets: self-explanatory but shows you all the global images, fonts, and etc for the project that are static in nature and do not need to be dynamically imported or fetched
-- scripts: another folder for JS/TS stuff for frontend logic or rendering if we need it
-- components: this contains shadcn related materials + custom things that help build out the BuildSmart website. If you need to build things for graphs or whatnot, use this folder to help organize that
-- hooks: mainly for save state or loading stuff
-- pages: these are the website pages for each of the BuildSmart we need and is based off the wireframes we've discussed.
-
-
-### Backend
-All backend related work is within the backend folder and is formatted in this structure: 
+### Environment Variables
+You'll want to create a secrets manager project from Infisical and then through that, you'll insert your OPENAI_API_KEY
+```sh
+INFISICAL_CLIENT_ID=
+INFISICAL_CLIENT_SECRET=
 ```
-.
-├── homedepot
-└── projectplanner
-```
+^ for more info on how to get these. Refer here: https://infisical.com/docs/cli/commands/secrets
 
-_There are more folders of interest needed to be made but the above serves its purpose below_
+## Documentation
+The full Software Engineering specification document (requirements, system architecture, wireframes, test cases, and deployment plan) is available under the docs folder and BuildSmart_SED.pdf
 
-- homedepot: this goes to the Home Depot website and spins up a headless browser to help reroute requests and fetch live Home Depot results
-- projectplanner: this is the OpenAI ChatGPT wrapper that's there to take in natural queries and spin up structured data for frontend to render and use
+## Contributions from Alen Jo
+**Architecture & Infrastructure:** 
+- Designed the physical system architecture and led all technical setup decisions
+- Built the entire frontend scaffolding and component structure from scratch
+- Configured Docker containers and docker-compose for local development
+- Set up CI/CD pipelines via GitHub Actions for automated testing
+- Hosted the live demo via Cloudflare Tunnels for in-class presentation
 
-## Common Troublehooting and FAQs
-Common pitfalls that might happen during development 
-1. My code did not update even though I saved
+**Core Features:** 
+- Integrated the Home Depot GraphQL API endpoint for real-time product enrichment
+- Built the OpenAI/ChatGPT pipeline that converts natural language input into structured project plans
+- Implemented the BI export pipeline (SKU + quantity demand signals, no PII)
+- Added shopping cart CSV export functionality
 
-Check to make sure that the docker container is stopped before trying again. Ctrl + C to stop the docker container fully (you might wanna press or spam three times to fully quit). Then, you'll want to run `npm run dev` again
+**SE Document:**
+- Owned FR-1 through FR-10 (product catalog, NLP input, SKU mapping, inventory, BI export)
+- Wrote NFR-1 through NFR-3 (attach-rate accuracy, API sync intervals, demand pipeline SLAs)
+- Authored User Stories US-14 through US-19, Use Case Diagram 4, Sequence Diagram 3, Wireframes 4–6, and corresponding test cases
 
-2. My code _still_ did not update even though I saved and did troublehshooting #1
+**Leadership**
+- Conducted code reviews across all teammates to ensure end-to-end integration of our MVP
 
-It could be a stale docker cache, for this, you'll want to run `docker compose down --rmi all `. Once the command completes, then you can run `npm run dev`
+## Full Team
+| Name | Role |
+|---|---|
+| Prajit Alexander | Implementation overview, NLP/AI requirements, AR, analytics |
+| Estrella Avila | Project dashboard UI, customer experience features |
+| Nathan Tennyson | Deployment plan, privacy/monitoring requirements, docs |
 
-3. Session boot failed
-
-Frontend will not continue when this error happens.
-
-However, if that happens, it means that the Home Depot API detected unusual activity within the internal navigator. You can run troubleshooting #1 and have that fully restart the backend. This shouldn't happen under normal circumstances but it can be intermittent depending on your environment
+## Troubleshooting Help
+**Changes not reflecting after save**: Stop the Docker container (Ctrl+C three times), then re-run npm run dev.
+**Still not updating**: Clear the Docker cache: docker compose down --rmi all, then re-run npm run dev.
+**Session boot failed**: Home Depot's internal API detected unusual activity. Restart the backend via Ctrl+C → npm run dev. This is intermittent and typically resolves on retry (or worst case, you'll need to wait a few minutes).
